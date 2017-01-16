@@ -1,0 +1,38 @@
+Last Modified Date & Time: 01/06/2017 13:16:47
+
+BLE_MIDI_iOS: TopDesign.cysch
+	Advertising_LED [v2.20] to [v2.20]
+	Hibernate_LED [v2.20] to [v2.20]
+	Alert_LED [v2.20] to [v2.20]
+	Wakeup_SW [v2.20] to [v2.20]
+	BLE [v3.10] to [v3.10]
+	PWM [v2.10] to [v2.10]
+	CapSense_Slider [v2.40] to [v2.40]
+	CapSense [v2.40] to [v2.40]
+	UART [v3.20] to [v3.20]
+
+BLE_MIDI_iOS: BLE_MIDI_iOS.cydwr
+	cy_boot [v4.20] to [v5.40]
+	cy_lfclk [v1.0] to [v1.10]
+	LIN_Dynamic [v3.20] to [v3.40]
+
+
+Last Modified Date & Time: 01/06/2017 16:21:58
+
+BLE_MIDI_iOS: TopDesign.cysch
+	Advertising_LED [v2.10] to [v2.20]
+	Hibernate_LED [v2.10] to [v2.20]
+	Alert_LED [v2.10] to [v2.20]
+	Wakeup_SW [v2.10] to [v2.20]
+	BLE [v1.10] to [v3.10]
+	PWM [v2.0] to [v2.10]
+	CapSense_Slider [v2.10] to [v2.40]
+	CapSense [v2.10] to [v2.40]
+	UART [v2.0] to [v3.20]
+
+BLE_MIDI_iOS: BLE_MIDI_iOS.cydwr
+	cy_boot [v4.20] to [v5.40]
+	cy_lfclk [v1.0] to [v1.10]
+	LIN_Dynamic [v3.20] to [v3.40]
+
+

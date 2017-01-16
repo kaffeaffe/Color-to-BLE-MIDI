@@ -1,0 +1,2829 @@
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 1
+
+
+   1              		.cpu cortex-m0
+   2              		.fpu softvfp
+   3              		.eabi_attribute 20, 1
+   4              		.eabi_attribute 21, 1
+   5              		.eabi_attribute 23, 3
+   6              		.eabi_attribute 24, 1
+   7              		.eabi_attribute 25, 1
+   8              		.eabi_attribute 26, 1
+   9              		.eabi_attribute 30, 6
+  10              		.eabi_attribute 34, 0
+  11              		.eabi_attribute 18, 4
+  12              		.code	16
+  13              		.file	"BLE_Interface.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.bss
+  18              	connectionParamIndex:
+  19 0000 00       		.space	1
+  20              	connectionParamState:
+  21 0001 00       		.space	1
+  22              		.data
+  23              		.align	2
+  24              		.type	midiConnectionParam, %object
+  25              		.size	midiConnectionParam, 16
+  26              	midiConnectionParam:
+  27 0000 0800     		.short	8
+  28 0002 0A00     		.short	10
+  29 0004 C800     		.short	200
+  30 0006 6400     		.short	100
+  31 0008 0B00     		.short	11
+  32 000a 0D00     		.short	13
+  33 000c C800     		.short	200
+  34 000e 6400     		.short	100
+  35              		.section	.text.BLE_Start,"ax",%progbits
+  36              		.align	2
+  37              		.global	BLE_Start
+  38              		.code	16
+  39              		.thumb_func
+  40              		.type	BLE_Start, %function
+  41              	BLE_Start:
+  42              	.LFB37:
+  43              		.file 1 ".\\BLE_Interface.c"
+   1:.\BLE_Interface.c **** /*******************************************************************************
+   2:.\BLE_Interface.c **** * File Name: BLE.c
+   3:.\BLE_Interface.c **** *
+   4:.\BLE_Interface.c **** * Description:
+   5:.\BLE_Interface.c **** *  This file contains BLE related functions and event handlers
+   6:.\BLE_Interface.c **** * 
+   7:.\BLE_Interface.c **** ********************************************************************************
+   8:.\BLE_Interface.c **** * Copyright 2015, Cypress Semiconductor Corporation.  All rights reserved.
+   9:.\BLE_Interface.c **** * You may use this file only in accordance with the license, terms, conditions,
+  10:.\BLE_Interface.c **** * disclaimers, and limitations in the end user license agreement accompanying
+  11:.\BLE_Interface.c **** * the software package with which this file was provided.
+  12:.\BLE_Interface.c **** *******************************************************************************/
+  13:.\BLE_Interface.c **** 
+  14:.\BLE_Interface.c **** #include <BLE_Interface.h>
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 2
+
+
+  15:.\BLE_Interface.c **** #include <Configuration.h>
+  16:.\BLE_Interface.c **** #include <Logger.h>
+  17:.\BLE_Interface.c **** #include <MIDI.h>
+  18:.\BLE_Interface.c **** #include <Project.h>
+  19:.\BLE_Interface.c **** 
+  20:.\BLE_Interface.c **** /***************************************
+  21:.\BLE_Interface.c **** *        Global and Static variables
+  22:.\BLE_Interface.c **** ***************************************/
+  23:.\BLE_Interface.c **** static BLE_CONNECTION_PARAM_INDEX connectionParamIndex = LOW_LATENCY_CONNECTION_PARAMETER_INDEX;
+  24:.\BLE_Interface.c **** static BLE_CONNECTION_PARAM_STATE connectionParamState = CONNECTION_PARAMETER_IDLE_STATE;
+  25:.\BLE_Interface.c **** 
+  26:.\BLE_Interface.c **** static CYBLE_GAP_CONN_UPDATE_PARAM_T midiConnectionParam[] =
+  27:.\BLE_Interface.c **** {
+  28:.\BLE_Interface.c ****     /* Connection parameter low latency */
+  29:.\BLE_Interface.c ****     {
+  30:.\BLE_Interface.c ****         8,        /* Minimum connection interval of 11.25 ms */
+  31:.\BLE_Interface.c ****         10,        /* Maximum connection interval of 11.25 ms */
+  32:.\BLE_Interface.c ****         200,          /* Slave latency */
+  33:.\BLE_Interface.c ****         100        /* Supervision timeout of 5 seconds */
+  34:.\BLE_Interface.c ****     },
+  35:.\BLE_Interface.c ****     /* Connection parameter mid latency */
+  36:.\BLE_Interface.c ****     {
+  37:.\BLE_Interface.c ****         11,        /* Minimum connection interval of 15 ms */
+  38:.\BLE_Interface.c ****         13,        /* Maximum connection interval of 15 ms */
+  39:.\BLE_Interface.c ****         200,          /* Slave latency */
+  40:.\BLE_Interface.c ****         100        /* Supervision timeout of 1 seconds */
+  41:.\BLE_Interface.c ****     },
+  42:.\BLE_Interface.c **** };
+  43:.\BLE_Interface.c **** 
+  44:.\BLE_Interface.c **** /*******************************************************************************
+  45:.\BLE_Interface.c **** * Function Name: BLE_Start
+  46:.\BLE_Interface.c **** ********************************************************************************
+  47:.\BLE_Interface.c **** * Summary:
+  48:.\BLE_Interface.c **** *        Start the BLE interface
+  49:.\BLE_Interface.c **** *
+  50:.\BLE_Interface.c **** * Parameters:
+  51:.\BLE_Interface.c **** *  void
+  52:.\BLE_Interface.c **** *
+  53:.\BLE_Interface.c **** * Return:
+  54:.\BLE_Interface.c **** *  uint8 - status of BLE interface initialization
+  55:.\BLE_Interface.c **** *
+  56:.\BLE_Interface.c **** *******************************************************************************/
+  57:.\BLE_Interface.c **** uint8 BLE_Start(void)
+  58:.\BLE_Interface.c **** {
+  44              		.loc 1 58 0
+  45              		.cfi_startproc
+  46 0000 90B5     		push	{r4, r7, lr}
+  47              		.cfi_def_cfa_offset 12
+  48              		.cfi_offset 4, -12
+  49              		.cfi_offset 7, -8
+  50              		.cfi_offset 14, -4
+  51 0002 83B0     		sub	sp, sp, #12
+  52              		.cfi_def_cfa_offset 24
+  53 0004 00AF     		add	r7, sp, #0
+  54              		.cfi_def_cfa_register 7
+  59:.\BLE_Interface.c ****     CYBLE_API_RESULT_T apiResult;
+  60:.\BLE_Interface.c **** 
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 3
+
+
+  61:.\BLE_Interface.c ****     apiResult = CyBle_Start(StackEventHandler);
+  55              		.loc 1 61 0
+  56 0006 BC1D     		add	r4, r7, #6
+  57 0008 094B     		ldr	r3, .L4
+  58 000a 181C     		mov	r0, r3
+  59 000c FFF7FEFF 		bl	CyBle_Start
+  60 0010 031C     		mov	r3, r0
+  61 0012 2380     		strh	r3, [r4]
+  62:.\BLE_Interface.c **** 
+  63:.\BLE_Interface.c ****     if(apiResult != CYBLE_ERROR_OK)
+  62              		.loc 1 63 0
+  63 0014 BB1D     		add	r3, r7, #6
+  64 0016 1B88     		ldrh	r3, [r3]
+  65 0018 002B     		cmp	r3, #0
+  66 001a 01D0     		beq	.L2
+  64:.\BLE_Interface.c ****     {
+  65:.\BLE_Interface.c ****         return 0;
+  67              		.loc 1 65 0
+  68 001c 0023     		mov	r3, #0
+  69 001e 02E0     		b	.L3
+  70              	.L2:
+  66:.\BLE_Interface.c ****     }
+  67:.\BLE_Interface.c ****     
+  68:.\BLE_Interface.c ****     BLE_StateInit();
+  71              		.loc 1 68 0
+  72 0020 FFF7FEFF 		bl	BLE_StateInit
+  69:.\BLE_Interface.c ****     
+  70:.\BLE_Interface.c ****     return 1;
+  73              		.loc 1 70 0
+  74 0024 0123     		mov	r3, #1
+  75              	.L3:
+  71:.\BLE_Interface.c **** }
+  76              		.loc 1 71 0
+  77 0026 181C     		mov	r0, r3
+  78 0028 BD46     		mov	sp, r7
+  79 002a 03B0     		add	sp, sp, #12
+  80              		@ sp needed
+  81 002c 90BD     		pop	{r4, r7, pc}
+  82              	.L5:
+  83 002e C046     		.align	2
+  84              	.L4:
+  85 0030 00000000 		.word	StackEventHandler
+  86              		.cfi_endproc
+  87              	.LFE37:
+  88              		.size	BLE_Start, .-BLE_Start
+  89              		.section	.text.BLE_StateInit,"ax",%progbits
+  90              		.align	2
+  91              		.code	16
+  92              		.thumb_func
+  93              		.type	BLE_StateInit, %function
+  94              	BLE_StateInit:
+  95              	.LFB38:
+  72:.\BLE_Interface.c **** 
+  73:.\BLE_Interface.c **** /*******************************************************************************
+  74:.\BLE_Interface.c **** * Function Name: BLE_StateInit
+  75:.\BLE_Interface.c **** ********************************************************************************
+  76:.\BLE_Interface.c **** * Summary:
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 4
+
+
+  77:.\BLE_Interface.c **** *        Start the BLE interface
+  78:.\BLE_Interface.c **** *
+  79:.\BLE_Interface.c **** * Parameters:
+  80:.\BLE_Interface.c **** *  void
+  81:.\BLE_Interface.c **** *
+  82:.\BLE_Interface.c **** * Return:
+  83:.\BLE_Interface.c **** *  uint8 - status of BLE interface initialization
+  84:.\BLE_Interface.c **** *
+  85:.\BLE_Interface.c **** *******************************************************************************/
+  86:.\BLE_Interface.c **** static void BLE_StateInit(void)
+  87:.\BLE_Interface.c **** {
+  96              		.loc 1 87 0
+  97              		.cfi_startproc
+  98 0000 80B5     		push	{r7, lr}
+  99              		.cfi_def_cfa_offset 8
+ 100              		.cfi_offset 7, -8
+ 101              		.cfi_offset 14, -4
+ 102 0002 00AF     		add	r7, sp, #0
+ 103              		.cfi_def_cfa_register 7
+  88:.\BLE_Interface.c ****     /* Start the BLE interface with a low latencey connection parameters */
+  89:.\BLE_Interface.c ****     connectionParamIndex = LOW_LATENCY_CONNECTION_PARAMETER_INDEX;
+ 104              		.loc 1 89 0
+ 105 0004 034B     		ldr	r3, .L7
+ 106 0006 0022     		mov	r2, #0
+ 107 0008 1A70     		strb	r2, [r3]
+  90:.\BLE_Interface.c ****     
+  91:.\BLE_Interface.c ****     /* Only after the CCCD is enabled, send the connnection parameter update request */
+  92:.\BLE_Interface.c ****     connectionParamState = CONNECTION_PARAMETER_IDLE_STATE;
+ 108              		.loc 1 92 0
+ 109 000a 034B     		ldr	r3, .L7+4
+ 110 000c 0022     		mov	r2, #0
+ 111 000e 1A70     		strb	r2, [r3]
+  93:.\BLE_Interface.c **** }
+ 112              		.loc 1 93 0
+ 113 0010 BD46     		mov	sp, r7
+ 114              		@ sp needed
+ 115 0012 80BD     		pop	{r7, pc}
+ 116              	.L8:
+ 117              		.align	2
+ 118              	.L7:
+ 119 0014 00000000 		.word	connectionParamIndex
+ 120 0018 01000000 		.word	connectionParamState
+ 121              		.cfi_endproc
+ 122              	.LFE38:
+ 123              		.size	BLE_StateInit, .-BLE_StateInit
+ 124              		.section	.text.BLE_Run,"ax",%progbits
+ 125              		.align	2
+ 126              		.global	BLE_Run
+ 127              		.code	16
+ 128              		.thumb_func
+ 129              		.type	BLE_Run, %function
+ 130              	BLE_Run:
+ 131              	.LFB39:
+  94:.\BLE_Interface.c **** 
+  95:.\BLE_Interface.c **** /*******************************************************************************
+  96:.\BLE_Interface.c **** * Function Name: BLE_Run
+  97:.\BLE_Interface.c **** ********************************************************************************
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 5
+
+
+  98:.\BLE_Interface.c **** * Summary:
+  99:.\BLE_Interface.c **** *        Continuous BLE event processing engine module
+ 100:.\BLE_Interface.c **** *
+ 101:.\BLE_Interface.c **** * Parameters:
+ 102:.\BLE_Interface.c **** *  void
+ 103:.\BLE_Interface.c **** *
+ 104:.\BLE_Interface.c **** * Return:
+ 105:.\BLE_Interface.c **** *  None
+ 106:.\BLE_Interface.c **** *
+ 107:.\BLE_Interface.c **** *******************************************************************************/
+ 108:.\BLE_Interface.c **** void BLE_Run(void)
+ 109:.\BLE_Interface.c **** {
+ 132              		.loc 1 109 0
+ 133              		.cfi_startproc
+ 134 0000 80B5     		push	{r7, lr}
+ 135              		.cfi_def_cfa_offset 8
+ 136              		.cfi_offset 7, -8
+ 137              		.cfi_offset 14, -4
+ 138 0002 00AF     		add	r7, sp, #0
+ 139              		.cfi_def_cfa_register 7
+ 110:.\BLE_Interface.c ****     /* Single API call to service all the BLE stack events. Must be
+ 111:.\BLE_Interface.c ****      * called at least once in a BLE connection interval */
+ 112:.\BLE_Interface.c ****     CyBle_ProcessEvents();
+ 140              		.loc 1 112 0
+ 141 0004 FFF7FEFF 		bl	CyBle_ProcessEvents
+ 113:.\BLE_Interface.c ****     
+ 114:.\BLE_Interface.c ****     /* Setup BLE interface parameters as per MIDI transport requirements */
+ 115:.\BLE_Interface.c ****     UpdateMidiInterfaceConnParam(connectionParamIndex);
+ 142              		.loc 1 115 0
+ 143 0008 044B     		ldr	r3, .L10
+ 144 000a 1B78     		ldrb	r3, [r3]
+ 145 000c 181C     		mov	r0, r3
+ 146 000e FFF7FEFF 		bl	UpdateMidiInterfaceConnParam
+ 116:.\BLE_Interface.c **** 
+ 117:.\BLE_Interface.c ****     /* Configure BLESS in DeepSleep mode  */
+ 118:.\BLE_Interface.c ****     CyBle_EnterLPM(CYBLE_BLESS_DEEPSLEEP);
+ 147              		.loc 1 118 0
+ 148 0012 0320     		mov	r0, #3
+ 149 0014 FFF7FEFF 		bl	CyBle_EnterLPM
+ 119:.\BLE_Interface.c **** }
+ 150              		.loc 1 119 0
+ 151 0018 BD46     		mov	sp, r7
+ 152              		@ sp needed
+ 153 001a 80BD     		pop	{r7, pc}
+ 154              	.L11:
+ 155              		.align	2
+ 156              	.L10:
+ 157 001c 00000000 		.word	connectionParamIndex
+ 158              		.cfi_endproc
+ 159              	.LFE39:
+ 160              		.size	BLE_Run, .-BLE_Run
+ 161              		.section	.text.StackEventHandler,"ax",%progbits
+ 162              		.align	2
+ 163              		.global	StackEventHandler
+ 164              		.code	16
+ 165              		.thumb_func
+ 166              		.type	StackEventHandler, %function
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 6
+
+
+ 167              	StackEventHandler:
+ 168              	.LFB40:
+ 120:.\BLE_Interface.c **** 
+ 121:.\BLE_Interface.c **** /*******************************************************************************
+ 122:.\BLE_Interface.c **** * Function Name: StackEventHandler
+ 123:.\BLE_Interface.c **** ********************************************************************************
+ 124:.\BLE_Interface.c **** *
+ 125:.\BLE_Interface.c **** * Summary:
+ 126:.\BLE_Interface.c **** *  This is an event callback function to receive events from the BLE Component.
+ 127:.\BLE_Interface.c **** *
+ 128:.\BLE_Interface.c **** * Parameters:
+ 129:.\BLE_Interface.c **** *  uint8 event:       Event from the CYBLE component
+ 130:.\BLE_Interface.c **** *  void* eventParams: A structure instance for corresponding event type. The
+ 131:.\BLE_Interface.c **** *                     list of event structure is described in the component
+ 132:.\BLE_Interface.c **** *                     datasheet.
+ 133:.\BLE_Interface.c **** *
+ 134:.\BLE_Interface.c **** * Return:
+ 135:.\BLE_Interface.c **** *  None
+ 136:.\BLE_Interface.c **** *
+ 137:.\BLE_Interface.c **** *******************************************************************************/
+ 138:.\BLE_Interface.c **** void StackEventHandler(uint32 event, void *eventParam)
+ 139:.\BLE_Interface.c **** {
+ 169              		.loc 1 139 0
+ 170              		.cfi_startproc
+ 171 0000 80B5     		push	{r7, lr}
+ 172              		.cfi_def_cfa_offset 8
+ 173              		.cfi_offset 7, -8
+ 174              		.cfi_offset 14, -4
+ 175 0002 82B0     		sub	sp, sp, #8
+ 176              		.cfi_def_cfa_offset 16
+ 177 0004 00AF     		add	r7, sp, #0
+ 178              		.cfi_def_cfa_register 7
+ 179 0006 7860     		str	r0, [r7, #4]
+ 180 0008 3960     		str	r1, [r7]
+ 140:.\BLE_Interface.c ****     switch(event)
+ 181              		.loc 1 140 0
+ 182 000a 7B68     		ldr	r3, [r7, #4]
+ 183 000c 282B     		cmp	r3, #40
+ 184 000e 0DD0     		beq	.L14
+ 185 0010 05D8     		bhi	.L15
+ 186 0012 262B     		cmp	r3, #38
+ 187 0014 17D0     		beq	.L16
+ 188 0016 12D8     		bhi	.L17
+ 189 0018 012B     		cmp	r3, #1
+ 190 001a 07D0     		beq	.L14
+ 141:.\BLE_Interface.c ****     {
+ 142:.\BLE_Interface.c ****         /* Mandatory events to be handled by Find Me Target design */
+ 143:.\BLE_Interface.c ****         case CYBLE_EVT_STACK_ON:
+ 144:.\BLE_Interface.c ****         case CYBLE_EVT_GAP_DEVICE_DISCONNECTED:
+ 145:.\BLE_Interface.c ****             /* Start BLE advertisement for 30 seconds and update link
+ 146:.\BLE_Interface.c ****              * status on LEDs */
+ 147:.\BLE_Interface.c ****             CyBle_GappStartAdvertisement(CYBLE_ADVERTISING_FAST);
+ 148:.\BLE_Interface.c ****             Advertising_LED_Write(LED_ON);
+ 149:.\BLE_Interface.c ****             
+ 150:.\BLE_Interface.c ****             /* Re-initialize the BLE interface */
+ 151:.\BLE_Interface.c ****             BLE_StateInit();
+ 152:.\BLE_Interface.c ****           break;
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 7
+
+
+ 153:.\BLE_Interface.c **** 
+ 154:.\BLE_Interface.c ****         case CYBLE_EVT_GAP_DEVICE_CONNECTED:
+ 155:.\BLE_Interface.c ****             /* BLE link is established */
+ 156:.\BLE_Interface.c ****             Advertising_LED_Write(LED_OFF);
+ 157:.\BLE_Interface.c ****         break;
+ 158:.\BLE_Interface.c **** 
+ 159:.\BLE_Interface.c ****         case CYBLE_EVT_GAPP_ADVERTISEMENT_START_STOP:
+ 160:.\BLE_Interface.c ****             if(CyBle_GetState() == CYBLE_STATE_DISCONNECTED)
+ 161:.\BLE_Interface.c ****             {
+ 162:.\BLE_Interface.c ****                 /* Advertisement event timed out, go to low power
+ 163:.\BLE_Interface.c ****                  * mode (Hibernate mode) and wait for an external
+ 164:.\BLE_Interface.c ****                  * user event to wake up the device again */
+ 165:.\BLE_Interface.c ****                 Advertising_LED_Write(LED_OFF);
+ 166:.\BLE_Interface.c ****                 Hibernate_LED_Write(LED_ON);
+ 167:.\BLE_Interface.c ****                 PWM_Stop();
+ 168:.\BLE_Interface.c ****                 Wakeup_SW_ClearInterrupt();
+ 169:.\BLE_Interface.c ****                 Wakeup_Interrupt_ClearPending();
+ 170:.\BLE_Interface.c ****                 Wakeup_Interrupt_Start();
+ 171:.\BLE_Interface.c ****                 CySysPmHibernate();
+ 172:.\BLE_Interface.c ****             }
+ 173:.\BLE_Interface.c ****         break;
+ 174:.\BLE_Interface.c ****             
+ 175:.\BLE_Interface.c ****         case CYBLE_EVT_L2CAP_CONN_PARAM_UPDATE_RSP:
+ 176:.\BLE_Interface.c ****             if(*(uint16 *)eventParam == CONNECTION_PARAMETER_ACCEPTED)
+ 177:.\BLE_Interface.c ****             {
+ 178:.\BLE_Interface.c ****                 /* Previously sent connection parameter is accepted by the iOS/Mac device */
+ 179:.\BLE_Interface.c ****                 connectionParamState = CONNECTION_PARAMETER_ACCEPTED_STATE;
+ 180:.\BLE_Interface.c ****             }
+ 181:.\BLE_Interface.c ****             else if (*(uint16 *)eventParam == CONNECTION_PARAMETER_REJECTED)
+ 182:.\BLE_Interface.c ****             {
+ 183:.\BLE_Interface.c ****                 connectionParamIndex++;
+ 184:.\BLE_Interface.c ****                 if(connectionParamIndex != TOTAL_NUMBER_OF_CONNECTION_PARAMETERS)
+ 185:.\BLE_Interface.c ****                 {
+ 186:.\BLE_Interface.c ****                     connectionParamState = CONNECTION_PARAMETER_UPDATE_REQUIRED_STATE; 
+ 187:.\BLE_Interface.c ****                 }
+ 188:.\BLE_Interface.c ****                 else
+ 189:.\BLE_Interface.c ****                 {
+ 190:.\BLE_Interface.c ****                     connectionParamState = CONNECTION_PARAMETER_REJECTED_STATE;
+ 191:.\BLE_Interface.c ****                 }
+ 192:.\BLE_Interface.c ****             }
+ 193:.\BLE_Interface.c ****         break;
+ 194:.\BLE_Interface.c ****             
+ 195:.\BLE_Interface.c ****         case CYBLE_EVT_GATTS_WRITE_REQ:
+ 196:.\BLE_Interface.c ****             if(connectionParamState == CONNECTION_PARAMETER_IDLE_STATE)
+ 197:.\BLE_Interface.c ****             {
+ 198:.\BLE_Interface.c ****                 connectionParamState = CONNECTION_PARAMETER_UPDATE_REQUIRED_STATE;    
+ 199:.\BLE_Interface.c ****             }
+ 200:.\BLE_Interface.c ****             
+ 201:.\BLE_Interface.c ****             MIDIEventHandler(event, eventParam);
+ 202:.\BLE_Interface.c ****         break;
+ 203:.\BLE_Interface.c ****             
+ 204:.\BLE_Interface.c ****         case CYBLE_EVT_GATTS_WRITE_CMD_REQ:    
+ 205:.\BLE_Interface.c ****             MIDIEventHandler(event, eventParam);
+ 206:.\BLE_Interface.c ****         break;
+ 207:.\BLE_Interface.c **** 
+ 208:.\BLE_Interface.c ****         default:
+ 209:.\BLE_Interface.c ****         break;
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 8
+
+
+ 191              		.loc 1 209 0
+ 192 001c 5DE0     		b	.L12
+ 193              	.L15:
+ 140:.\BLE_Interface.c ****     switch(event)
+ 194              		.loc 1 140 0
+ 195 001e 4E2B     		cmp	r3, #78
+ 196 0020 54D0     		beq	.L18
+ 197 0022 712B     		cmp	r3, #113
+ 198 0024 25D0     		beq	.L19
+ 199 0026 4C2B     		cmp	r3, #76
+ 200 0028 42D0     		beq	.L20
+ 201              		.loc 1 209 0
+ 202 002a 56E0     		b	.L12
+ 203              	.L14:
+ 147:.\BLE_Interface.c ****             Advertising_LED_Write(LED_ON);
+ 204              		.loc 1 147 0
+ 205 002c 0020     		mov	r0, #0
+ 206 002e FFF7FEFF 		bl	CyBle_GappStartAdvertisement
+ 148:.\BLE_Interface.c ****             
+ 207              		.loc 1 148 0
+ 208 0032 0020     		mov	r0, #0
+ 209 0034 FFF7FEFF 		bl	Advertising_LED_Write
+ 151:.\BLE_Interface.c ****           break;
+ 210              		.loc 1 151 0
+ 211 0038 FFF7FEFF 		bl	BLE_StateInit
+ 152:.\BLE_Interface.c **** 
+ 212              		.loc 1 152 0
+ 213 003c 4DE0     		b	.L12
+ 214              	.L17:
+ 156:.\BLE_Interface.c ****         break;
+ 215              		.loc 1 156 0
+ 216 003e 0120     		mov	r0, #1
+ 217 0040 FFF7FEFF 		bl	Advertising_LED_Write
+ 157:.\BLE_Interface.c **** 
+ 218              		.loc 1 157 0
+ 219 0044 49E0     		b	.L12
+ 220              	.L16:
+ 160:.\BLE_Interface.c ****             {
+ 221              		.loc 1 160 0
+ 222 0046 264B     		ldr	r3, .L27
+ 223 0048 1B78     		ldrb	r3, [r3]
+ 224 004a 042B     		cmp	r3, #4
+ 225 004c 10D1     		bne	.L22
+ 165:.\BLE_Interface.c ****                 Hibernate_LED_Write(LED_ON);
+ 226              		.loc 1 165 0
+ 227 004e 0120     		mov	r0, #1
+ 228 0050 FFF7FEFF 		bl	Advertising_LED_Write
+ 166:.\BLE_Interface.c ****                 PWM_Stop();
+ 229              		.loc 1 166 0
+ 230 0054 0020     		mov	r0, #0
+ 231 0056 FFF7FEFF 		bl	Hibernate_LED_Write
+ 167:.\BLE_Interface.c ****                 Wakeup_SW_ClearInterrupt();
+ 232              		.loc 1 167 0
+ 233 005a FFF7FEFF 		bl	PWM_Stop
+ 168:.\BLE_Interface.c ****                 Wakeup_Interrupt_ClearPending();
+ 234              		.loc 1 168 0
+ 235 005e FFF7FEFF 		bl	Wakeup_SW_ClearInterrupt
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 9
+
+
+ 169:.\BLE_Interface.c ****                 Wakeup_Interrupt_Start();
+ 236              		.loc 1 169 0
+ 237 0062 FFF7FEFF 		bl	Wakeup_Interrupt_ClearPending
+ 170:.\BLE_Interface.c ****                 CySysPmHibernate();
+ 238              		.loc 1 170 0
+ 239 0066 FFF7FEFF 		bl	Wakeup_Interrupt_Start
+ 171:.\BLE_Interface.c ****             }
+ 240              		.loc 1 171 0
+ 241 006a FFF7FEFF 		bl	CySysPmHibernate
+ 173:.\BLE_Interface.c ****             
+ 242              		.loc 1 173 0
+ 243 006e 34E0     		b	.L12
+ 244              	.L22:
+ 245 0070 33E0     		b	.L12
+ 246              	.L19:
+ 176:.\BLE_Interface.c ****             {
+ 247              		.loc 1 176 0
+ 248 0072 3B68     		ldr	r3, [r7]
+ 249 0074 1B88     		ldrh	r3, [r3]
+ 250 0076 002B     		cmp	r3, #0
+ 251 0078 03D1     		bne	.L23
+ 179:.\BLE_Interface.c ****             }
+ 252              		.loc 1 179 0
+ 253 007a 1A4B     		ldr	r3, .L27+4
+ 254 007c 0322     		mov	r2, #3
+ 255 007e 1A70     		strb	r2, [r3]
+ 256 0080 15E0     		b	.L24
+ 257              	.L23:
+ 181:.\BLE_Interface.c ****             {
+ 258              		.loc 1 181 0
+ 259 0082 3B68     		ldr	r3, [r7]
+ 260 0084 1B88     		ldrh	r3, [r3]
+ 261 0086 012B     		cmp	r3, #1
+ 262 0088 11D1     		bne	.L24
+ 183:.\BLE_Interface.c ****                 if(connectionParamIndex != TOTAL_NUMBER_OF_CONNECTION_PARAMETERS)
+ 263              		.loc 1 183 0
+ 264 008a 174B     		ldr	r3, .L27+8
+ 265 008c 1B78     		ldrb	r3, [r3]
+ 266 008e 0133     		add	r3, r3, #1
+ 267 0090 DAB2     		uxtb	r2, r3
+ 268 0092 154B     		ldr	r3, .L27+8
+ 269 0094 1A70     		strb	r2, [r3]
+ 184:.\BLE_Interface.c ****                 {
+ 270              		.loc 1 184 0
+ 271 0096 144B     		ldr	r3, .L27+8
+ 272 0098 1B78     		ldrb	r3, [r3]
+ 273 009a 022B     		cmp	r3, #2
+ 274 009c 03D0     		beq	.L25
+ 186:.\BLE_Interface.c ****                 }
+ 275              		.loc 1 186 0
+ 276 009e 114B     		ldr	r3, .L27+4
+ 277 00a0 0122     		mov	r2, #1
+ 278 00a2 1A70     		strb	r2, [r3]
+ 279 00a4 03E0     		b	.L24
+ 280              	.L25:
+ 190:.\BLE_Interface.c ****                 }
+ 281              		.loc 1 190 0
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 10
+
+
+ 282 00a6 0F4B     		ldr	r3, .L27+4
+ 283 00a8 0422     		mov	r2, #4
+ 284 00aa 1A70     		strb	r2, [r3]
+ 193:.\BLE_Interface.c ****             
+ 285              		.loc 1 193 0
+ 286 00ac 15E0     		b	.L12
+ 287              	.L24:
+ 288 00ae 14E0     		b	.L12
+ 289              	.L20:
+ 196:.\BLE_Interface.c ****             {
+ 290              		.loc 1 196 0
+ 291 00b0 0C4B     		ldr	r3, .L27+4
+ 292 00b2 1B78     		ldrb	r3, [r3]
+ 293 00b4 002B     		cmp	r3, #0
+ 294 00b6 02D1     		bne	.L26
+ 198:.\BLE_Interface.c ****             }
+ 295              		.loc 1 198 0
+ 296 00b8 0A4B     		ldr	r3, .L27+4
+ 297 00ba 0122     		mov	r2, #1
+ 298 00bc 1A70     		strb	r2, [r3]
+ 299              	.L26:
+ 201:.\BLE_Interface.c ****         break;
+ 300              		.loc 1 201 0
+ 301 00be 7A68     		ldr	r2, [r7, #4]
+ 302 00c0 3B68     		ldr	r3, [r7]
+ 303 00c2 101C     		mov	r0, r2
+ 304 00c4 191C     		mov	r1, r3
+ 305 00c6 FFF7FEFF 		bl	MIDIEventHandler
+ 202:.\BLE_Interface.c ****             
+ 306              		.loc 1 202 0
+ 307 00ca 06E0     		b	.L12
+ 308              	.L18:
+ 205:.\BLE_Interface.c ****         break;
+ 309              		.loc 1 205 0
+ 310 00cc 7A68     		ldr	r2, [r7, #4]
+ 311 00ce 3B68     		ldr	r3, [r7]
+ 312 00d0 101C     		mov	r0, r2
+ 313 00d2 191C     		mov	r1, r3
+ 314 00d4 FFF7FEFF 		bl	MIDIEventHandler
+ 206:.\BLE_Interface.c **** 
+ 315              		.loc 1 206 0
+ 316 00d8 C046     		mov	r8, r8
+ 317              	.L12:
+ 210:.\BLE_Interface.c ****     }
+ 211:.\BLE_Interface.c **** }
+ 318              		.loc 1 211 0
+ 319 00da BD46     		mov	sp, r7
+ 320 00dc 02B0     		add	sp, sp, #8
+ 321              		@ sp needed
+ 322 00de 80BD     		pop	{r7, pc}
+ 323              	.L28:
+ 324              		.align	2
+ 325              	.L27:
+ 326 00e0 00000000 		.word	cyBle_state
+ 327 00e4 01000000 		.word	connectionParamState
+ 328 00e8 00000000 		.word	connectionParamIndex
+ 329              		.cfi_endproc
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 11
+
+
+ 330              	.LFE40:
+ 331              		.size	StackEventHandler, .-StackEventHandler
+ 332              		.section	.text.UpdateMidiInterfaceConnParam,"ax",%progbits
+ 333              		.align	2
+ 334              		.code	16
+ 335              		.thumb_func
+ 336              		.type	UpdateMidiInterfaceConnParam, %function
+ 337              	UpdateMidiInterfaceConnParam:
+ 338              	.LFB41:
+ 212:.\BLE_Interface.c **** 
+ 213:.\BLE_Interface.c **** /*******************************************************************************
+ 214:.\BLE_Interface.c **** * Function Name: UpdateMidiInterfaceConnParam
+ 215:.\BLE_Interface.c **** ********************************************************************************
+ 216:.\BLE_Interface.c **** *
+ 217:.\BLE_Interface.c **** * Summary:
+ 218:.\BLE_Interface.c **** *  This is an event callback function to receive events from the BLE Component.
+ 219:.\BLE_Interface.c **** *
+ 220:.\BLE_Interface.c **** * Parameters:
+ 221:.\BLE_Interface.c **** *  uint8 event:       Event from the CYBLE component
+ 222:.\BLE_Interface.c **** *  void* eventParams: A structure instance for corresponding event type. The
+ 223:.\BLE_Interface.c **** *                     list of event structure is described in the component
+ 224:.\BLE_Interface.c **** *                     datasheet.
+ 225:.\BLE_Interface.c **** *
+ 226:.\BLE_Interface.c **** * Return:
+ 227:.\BLE_Interface.c **** *  None
+ 228:.\BLE_Interface.c **** *
+ 229:.\BLE_Interface.c **** *******************************************************************************/
+ 230:.\BLE_Interface.c **** static void UpdateMidiInterfaceConnParam(BLE_CONNECTION_PARAM_INDEX connectionParamIndex)
+ 231:.\BLE_Interface.c **** {
+ 339              		.loc 1 231 0
+ 340              		.cfi_startproc
+ 341 0000 90B5     		push	{r4, r7, lr}
+ 342              		.cfi_def_cfa_offset 12
+ 343              		.cfi_offset 4, -12
+ 344              		.cfi_offset 7, -8
+ 345              		.cfi_offset 14, -4
+ 346 0002 85B0     		sub	sp, sp, #20
+ 347              		.cfi_def_cfa_offset 32
+ 348 0004 00AF     		add	r7, sp, #0
+ 349              		.cfi_def_cfa_register 7
+ 350 0006 021C     		mov	r2, r0
+ 351 0008 FB1D     		add	r3, r7, #7
+ 352 000a 1A70     		strb	r2, [r3]
+ 232:.\BLE_Interface.c ****     if(connectionParamState == CONNECTION_PARAMETER_UPDATE_REQUIRED_STATE && CyBle_GetState() == CY
+ 353              		.loc 1 232 0
+ 354 000c 124B     		ldr	r3, .L32
+ 355 000e 1B78     		ldrb	r3, [r3]
+ 356 0010 012B     		cmp	r3, #1
+ 357 0012 1ED1     		bne	.L29
+ 358              		.loc 1 232 0 is_stmt 0 discriminator 1
+ 359 0014 114B     		ldr	r3, .L32+4
+ 360 0016 1B78     		ldrb	r3, [r3]
+ 361 0018 022B     		cmp	r3, #2
+ 362 001a 1AD1     		bne	.L29
+ 363              	.LBB2:
+ 233:.\BLE_Interface.c ****     {
+ 234:.\BLE_Interface.c ****         CYBLE_API_RESULT_T conResult;
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 12
+
+
+ 235:.\BLE_Interface.c **** 
+ 236:.\BLE_Interface.c ****         conResult = CyBle_L2capLeConnectionParamUpdateRequest(cyBle_connHandle.bdHandle, 
+ 364              		.loc 1 236 0 is_stmt 1
+ 365 001c 104B     		ldr	r3, .L32+8
+ 366 001e 1978     		ldrb	r1, [r3]
+ 237:.\BLE_Interface.c ****                                                             &midiConnectionParam[connectionParamInd
+ 367              		.loc 1 237 0
+ 368 0020 FB1D     		add	r3, r7, #7
+ 369 0022 1B78     		ldrb	r3, [r3]
+ 236:.\BLE_Interface.c ****                                                             &midiConnectionParam[connectionParamInd
+ 370              		.loc 1 236 0
+ 371 0024 DA00     		lsl	r2, r3, #3
+ 372 0026 0F4B     		ldr	r3, .L32+12
+ 373 0028 D318     		add	r3, r2, r3
+ 374 002a 0E22     		mov	r2, #14
+ 375 002c BC18     		add	r4, r7, r2
+ 376 002e 081C     		mov	r0, r1
+ 377 0030 191C     		mov	r1, r3
+ 378 0032 FFF7FEFF 		bl	CyBle_L2capLeConnectionParamUpdateRequest
+ 379 0036 031C     		mov	r3, r0
+ 380 0038 2380     		strh	r3, [r4]
+ 238:.\BLE_Interface.c ****         
+ 239:.\BLE_Interface.c ****         if(conResult != CYBLE_ERROR_OK)
+ 381              		.loc 1 239 0
+ 382 003a 0E23     		mov	r3, #14
+ 383 003c FB18     		add	r3, r7, r3
+ 384 003e 1B88     		ldrh	r3, [r3]
+ 385 0040 002B     		cmp	r3, #0
+ 386 0042 03D0     		beq	.L31
+ 240:.\BLE_Interface.c ****         {
+ 241:.\BLE_Interface.c ****             connectionParamState = CONNECTION_PARAMETER_SENT_STATE;
+ 387              		.loc 1 241 0
+ 388 0044 044B     		ldr	r3, .L32
+ 389 0046 0222     		mov	r2, #2
+ 390 0048 1A70     		strb	r2, [r3]
+ 391 004a 02E0     		b	.L29
+ 392              	.L31:
+ 242:.\BLE_Interface.c ****         }
+ 243:.\BLE_Interface.c ****         else
+ 244:.\BLE_Interface.c ****         {
+ 245:.\BLE_Interface.c ****             connectionParamState = CONNECTION_PARAMETER_FAILURE_STATE;
+ 393              		.loc 1 245 0
+ 394 004c 024B     		ldr	r3, .L32
+ 395 004e 0522     		mov	r2, #5
+ 396 0050 1A70     		strb	r2, [r3]
+ 397              	.L29:
+ 398              	.LBE2:
+ 246:.\BLE_Interface.c ****         }
+ 247:.\BLE_Interface.c ****     }
+ 248:.\BLE_Interface.c **** }
+ 399              		.loc 1 248 0
+ 400 0052 BD46     		mov	sp, r7
+ 401 0054 05B0     		add	sp, sp, #20
+ 402              		@ sp needed
+ 403 0056 90BD     		pop	{r4, r7, pc}
+ 404              	.L33:
+ 405              		.align	2
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 13
+
+
+ 406              	.L32:
+ 407 0058 01000000 		.word	connectionParamState
+ 408 005c 00000000 		.word	cyBle_state
+ 409 0060 00000000 		.word	cyBle_connHandle
+ 410 0064 00000000 		.word	midiConnectionParam
+ 411              		.cfi_endproc
+ 412              	.LFE41:
+ 413              		.size	UpdateMidiInterfaceConnParam, .-UpdateMidiInterfaceConnParam
+ 414              		.text
+ 415              	.Letext0:
+ 416              		.file 2 "Generated_Source\\PSoC4/Cytypes.h"
+ 417              		.file 3 "./BLE_Interface.h"
+ 418              		.file 4 "Generated_Source\\PSoC4/BLE_Stack.h"
+ 419              		.file 5 "Generated_Source\\PSoC4/BLE_StackGap.h"
+ 420              		.file 6 "Generated_Source\\PSoC4/BLE_StackGatt.h"
+ 421              		.file 7 "Generated_Source\\PSoC4/BLE_eventHandler.h"
+ 422              		.section	.debug_info,"",%progbits
+ 423              	.Ldebug_info0:
+ 424 0000 8B050000 		.4byte	0x58b
+ 425 0004 0400     		.2byte	0x4
+ 426 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 427 000a 04       		.byte	0x4
+ 428 000b 01       		.uleb128 0x1
+ 429 000c 800F0000 		.4byte	.LASF154
+ 430 0010 01       		.byte	0x1
+ 431 0011 18090000 		.4byte	.LASF155
+ 432 0015 B0050000 		.4byte	.LASF156
+ 433 0019 00000000 		.4byte	.Ldebug_ranges0+0
+ 434 001d 00000000 		.4byte	0
+ 435 0021 00000000 		.4byte	.Ldebug_line0
+ 436 0025 02       		.uleb128 0x2
+ 437 0026 01       		.byte	0x1
+ 438 0027 06       		.byte	0x6
+ 439 0028 4D030000 		.4byte	.LASF0
+ 440 002c 02       		.uleb128 0x2
+ 441 002d 01       		.byte	0x1
+ 442 002e 08       		.byte	0x8
+ 443 002f 920B0000 		.4byte	.LASF1
+ 444 0033 02       		.uleb128 0x2
+ 445 0034 02       		.byte	0x2
+ 446 0035 05       		.byte	0x5
+ 447 0036 CD0B0000 		.4byte	.LASF2
+ 448 003a 02       		.uleb128 0x2
+ 449 003b 02       		.byte	0x2
+ 450 003c 07       		.byte	0x7
+ 451 003d CE0D0000 		.4byte	.LASF3
+ 452 0041 02       		.uleb128 0x2
+ 453 0042 04       		.byte	0x4
+ 454 0043 05       		.byte	0x5
+ 455 0044 0A020000 		.4byte	.LASF4
+ 456 0048 02       		.uleb128 0x2
+ 457 0049 04       		.byte	0x4
+ 458 004a 07       		.byte	0x7
+ 459 004b B2060000 		.4byte	.LASF5
+ 460 004f 02       		.uleb128 0x2
+ 461 0050 08       		.byte	0x8
+ 462 0051 05       		.byte	0x5
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 14
+
+
+ 463 0052 3F030000 		.4byte	.LASF6
+ 464 0056 02       		.uleb128 0x2
+ 465 0057 08       		.byte	0x8
+ 466 0058 07       		.byte	0x7
+ 467 0059 F3050000 		.4byte	.LASF7
+ 468 005d 03       		.uleb128 0x3
+ 469 005e 04       		.byte	0x4
+ 470 005f 05       		.byte	0x5
+ 471 0060 696E7400 		.ascii	"int\000"
+ 472 0064 02       		.uleb128 0x2
+ 473 0065 04       		.byte	0x4
+ 474 0066 07       		.byte	0x7
+ 475 0067 E50C0000 		.4byte	.LASF8
+ 476 006b 04       		.uleb128 0x4
+ 477 006c 9A040000 		.4byte	.LASF9
+ 478 0070 02       		.byte	0x2
+ 479 0071 9801     		.2byte	0x198
+ 480 0073 2C000000 		.4byte	0x2c
+ 481 0077 04       		.uleb128 0x4
+ 482 0078 A00B0000 		.4byte	.LASF10
+ 483 007c 02       		.byte	0x2
+ 484 007d 9901     		.2byte	0x199
+ 485 007f 3A000000 		.4byte	0x3a
+ 486 0083 04       		.uleb128 0x4
+ 487 0084 05050000 		.4byte	.LASF11
+ 488 0088 02       		.byte	0x2
+ 489 0089 9A01     		.2byte	0x19a
+ 490 008b 48000000 		.4byte	0x48
+ 491 008f 02       		.uleb128 0x2
+ 492 0090 04       		.byte	0x4
+ 493 0091 04       		.byte	0x4
+ 494 0092 D90A0000 		.4byte	.LASF12
+ 495 0096 02       		.uleb128 0x2
+ 496 0097 08       		.byte	0x8
+ 497 0098 04       		.byte	0x4
+ 498 0099 BF040000 		.4byte	.LASF13
+ 499 009d 02       		.uleb128 0x2
+ 500 009e 01       		.byte	0x1
+ 501 009f 08       		.byte	0x8
+ 502 00a0 8C0C0000 		.4byte	.LASF14
+ 503 00a4 05       		.uleb128 0x5
+ 504 00a5 01       		.byte	0x1
+ 505 00a6 03       		.byte	0x3
+ 506 00a7 16       		.byte	0x16
+ 507 00a8 BF000000 		.4byte	0xbf
+ 508 00ac 06       		.uleb128 0x6
+ 509 00ad 8C100000 		.4byte	.LASF15
+ 510 00b1 00       		.sleb128 0
+ 511 00b2 06       		.uleb128 0x6
+ 512 00b3 2B0B0000 		.4byte	.LASF16
+ 513 00b7 01       		.sleb128 1
+ 514 00b8 06       		.uleb128 0x6
+ 515 00b9 A70B0000 		.4byte	.LASF17
+ 516 00bd 02       		.sleb128 2
+ 517 00be 00       		.byte	0
+ 518 00bf 07       		.uleb128 0x7
+ 519 00c0 BB0E0000 		.4byte	.LASF18
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 15
+
+
+ 520 00c4 03       		.byte	0x3
+ 521 00c5 1A       		.byte	0x1a
+ 522 00c6 A4000000 		.4byte	0xa4
+ 523 00ca 05       		.uleb128 0x5
+ 524 00cb 01       		.byte	0x1
+ 525 00cc 03       		.byte	0x3
+ 526 00cd 1D       		.byte	0x1d
+ 527 00ce F7000000 		.4byte	0xf7
+ 528 00d2 06       		.uleb128 0x6
+ 529 00d3 2C060000 		.4byte	.LASF19
+ 530 00d7 00       		.sleb128 0
+ 531 00d8 06       		.uleb128 0x6
+ 532 00d9 000B0000 		.4byte	.LASF20
+ 533 00dd 01       		.sleb128 1
+ 534 00de 06       		.uleb128 0x6
+ 535 00df 2D0F0000 		.4byte	.LASF21
+ 536 00e3 02       		.sleb128 2
+ 537 00e4 06       		.uleb128 0x6
+ 538 00e5 04080000 		.4byte	.LASF22
+ 539 00e9 03       		.sleb128 3
+ 540 00ea 06       		.uleb128 0x6
+ 541 00eb 8F010000 		.4byte	.LASF23
+ 542 00ef 04       		.sleb128 4
+ 543 00f0 06       		.uleb128 0x6
+ 544 00f1 0C050000 		.4byte	.LASF24
+ 545 00f5 05       		.sleb128 5
+ 546 00f6 00       		.byte	0
+ 547 00f7 07       		.uleb128 0x7
+ 548 00f8 F5030000 		.4byte	.LASF25
+ 549 00fc 03       		.byte	0x3
+ 550 00fd 24       		.byte	0x24
+ 551 00fe CA000000 		.4byte	0xca
+ 552 0102 02       		.uleb128 0x2
+ 553 0103 04       		.byte	0x4
+ 554 0104 07       		.byte	0x7
+ 555 0105 7F090000 		.4byte	.LASF26
+ 556 0109 08       		.uleb128 0x8
+ 557 010a 04       		.byte	0x4
+ 558 010b 09       		.uleb128 0x9
+ 559 010c 01       		.byte	0x1
+ 560 010d 04       		.byte	0x4
+ 561 010e 4201     		.2byte	0x142
+ 562 0110 C8020000 		.4byte	0x2c8
+ 563 0114 06       		.uleb128 0x6
+ 564 0115 AC070000 		.4byte	.LASF27
+ 565 0119 00       		.sleb128 0
+ 566 011a 06       		.uleb128 0x6
+ 567 011b 59030000 		.4byte	.LASF28
+ 568 011f 01       		.sleb128 1
+ 569 0120 06       		.uleb128 0x6
+ 570 0121 F8010000 		.4byte	.LASF29
+ 571 0125 02       		.sleb128 2
+ 572 0126 06       		.uleb128 0x6
+ 573 0127 B50D0000 		.4byte	.LASF30
+ 574 012b 03       		.sleb128 3
+ 575 012c 06       		.uleb128 0x6
+ 576 012d 78020000 		.4byte	.LASF31
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 16
+
+
+ 577 0131 04       		.sleb128 4
+ 578 0132 06       		.uleb128 0x6
+ 579 0133 23000000 		.4byte	.LASF32
+ 580 0137 05       		.sleb128 5
+ 581 0138 06       		.uleb128 0x6
+ 582 0139 E1070000 		.4byte	.LASF33
+ 583 013d 06       		.sleb128 6
+ 584 013e 06       		.uleb128 0x6
+ 585 013f F4080000 		.4byte	.LASF34
+ 586 0143 20       		.sleb128 32
+ 587 0144 06       		.uleb128 0x6
+ 588 0145 AB030000 		.4byte	.LASF35
+ 589 0149 21       		.sleb128 33
+ 590 014a 06       		.uleb128 0x6
+ 591 014b 28080000 		.4byte	.LASF36
+ 592 014f 22       		.sleb128 34
+ 593 0150 06       		.uleb128 0x6
+ 594 0151 91080000 		.4byte	.LASF37
+ 595 0155 23       		.sleb128 35
+ 596 0156 06       		.uleb128 0x6
+ 597 0157 3C0A0000 		.4byte	.LASF38
+ 598 015b 24       		.sleb128 36
+ 599 015c 06       		.uleb128 0x6
+ 600 015d A1090000 		.4byte	.LASF39
+ 601 0161 25       		.sleb128 37
+ 602 0162 06       		.uleb128 0x6
+ 603 0163 4F040000 		.4byte	.LASF40
+ 604 0167 26       		.sleb128 38
+ 605 0168 06       		.uleb128 0x6
+ 606 0169 4C080000 		.4byte	.LASF41
+ 607 016d 27       		.sleb128 39
+ 608 016e 06       		.uleb128 0x6
+ 609 016f C30C0000 		.4byte	.LASF42
+ 610 0173 28       		.sleb128 40
+ 611 0174 06       		.uleb128 0x6
+ 612 0175 E1020000 		.4byte	.LASF43
+ 613 0179 29       		.sleb128 41
+ 614 017a 06       		.uleb128 0x6
+ 615 017b AB000000 		.4byte	.LASF44
+ 616 017f 2A       		.sleb128 42
+ 617 0180 06       		.uleb128 0x6
+ 618 0181 8D020000 		.4byte	.LASF45
+ 619 0185 2B       		.sleb128 43
+ 620 0186 06       		.uleb128 0x6
+ 621 0187 4A100000 		.4byte	.LASF46
+ 622 018b 2C       		.sleb128 44
+ 623 018c 06       		.uleb128 0x6
+ 624 018d FE020000 		.4byte	.LASF47
+ 625 0191 2D       		.sleb128 45
+ 626 0192 06       		.uleb128 0x6
+ 627 0193 1B0D0000 		.4byte	.LASF48
+ 628 0197 2E       		.sleb128 46
+ 629 0198 06       		.uleb128 0x6
+ 630 0199 28010000 		.4byte	.LASF49
+ 631 019d 2F       		.sleb128 47
+ 632 019e 06       		.uleb128 0x6
+ 633 019f 1B0A0000 		.4byte	.LASF50
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 17
+
+
+ 634 01a3 30       		.sleb128 48
+ 635 01a4 06       		.uleb128 0x6
+ 636 01a5 EC100000 		.4byte	.LASF51
+ 637 01a9 31       		.sleb128 49
+ 638 01aa 06       		.uleb128 0x6
+ 639 01ab E6090000 		.4byte	.LASF52
+ 640 01af 32       		.sleb128 50
+ 641 01b0 06       		.uleb128 0x6
+ 642 01b1 650C0000 		.4byte	.LASF53
+ 643 01b5 33       		.sleb128 51
+ 644 01b6 06       		.uleb128 0x6
+ 645 01b7 4C050000 		.4byte	.LASF54
+ 646 01bb C000     		.sleb128 64
+ 647 01bd 06       		.uleb128 0x6
+ 648 01be B7080000 		.4byte	.LASF55
+ 649 01c2 C100     		.sleb128 65
+ 650 01c4 06       		.uleb128 0x6
+ 651 01c5 10110000 		.4byte	.LASF56
+ 652 01c9 C200     		.sleb128 66
+ 653 01cb 06       		.uleb128 0x6
+ 654 01cc 220E0000 		.4byte	.LASF57
+ 655 01d0 C300     		.sleb128 67
+ 656 01d2 06       		.uleb128 0x6
+ 657 01d3 F6060000 		.4byte	.LASF58
+ 658 01d7 C400     		.sleb128 68
+ 659 01d9 06       		.uleb128 0x6
+ 660 01da D1010000 		.4byte	.LASF59
+ 661 01de C500     		.sleb128 69
+ 662 01e0 06       		.uleb128 0x6
+ 663 01e1 5E090000 		.4byte	.LASF60
+ 664 01e5 C600     		.sleb128 70
+ 665 01e7 06       		.uleb128 0x6
+ 666 01e8 C3070000 		.4byte	.LASF61
+ 667 01ec C700     		.sleb128 71
+ 668 01ee 06       		.uleb128 0x6
+ 669 01ef 0E100000 		.4byte	.LASF62
+ 670 01f3 C800     		.sleb128 72
+ 671 01f5 06       		.uleb128 0x6
+ 672 01f6 C2030000 		.4byte	.LASF63
+ 673 01fa C900     		.sleb128 73
+ 674 01fc 06       		.uleb128 0x6
+ 675 01fd 6F0E0000 		.4byte	.LASF64
+ 676 0201 CA00     		.sleb128 74
+ 677 0203 06       		.uleb128 0x6
+ 678 0204 51010000 		.4byte	.LASF65
+ 679 0208 CB00     		.sleb128 75
+ 680 020a 06       		.uleb128 0x6
+ 681 020b 6B080000 		.4byte	.LASF66
+ 682 020f CC00     		.sleb128 76
+ 683 0211 06       		.uleb128 0x6
+ 684 0212 CC090000 		.4byte	.LASF67
+ 685 0216 CD00     		.sleb128 77
+ 686 0218 06       		.uleb128 0x6
+ 687 0219 10040000 		.4byte	.LASF68
+ 688 021d CE00     		.sleb128 78
+ 689 021f 06       		.uleb128 0x6
+ 690 0220 1E0C0000 		.4byte	.LASF69
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 18
+
+
+ 691 0224 CF00     		.sleb128 79
+ 692 0226 06       		.uleb128 0x6
+ 693 0227 70010000 		.4byte	.LASF70
+ 694 022b D000     		.sleb128 80
+ 695 022d 06       		.uleb128 0x6
+ 696 022e A0040000 		.4byte	.LASF71
+ 697 0232 D100     		.sleb128 81
+ 698 0234 06       		.uleb128 0x6
+ 699 0235 750A0000 		.4byte	.LASF72
+ 700 0239 D200     		.sleb128 82
+ 701 023b 06       		.uleb128 0x6
+ 702 023c D70B0000 		.4byte	.LASF73
+ 703 0240 D300     		.sleb128 83
+ 704 0242 06       		.uleb128 0x6
+ 705 0243 DF0A0000 		.4byte	.LASF74
+ 706 0247 D400     		.sleb128 84
+ 707 0249 06       		.uleb128 0x6
+ 708 024a 14070000 		.4byte	.LASF75
+ 709 024e D500     		.sleb128 85
+ 710 0250 06       		.uleb128 0x6
+ 711 0251 0A060000 		.4byte	.LASF76
+ 712 0255 D600     		.sleb128 86
+ 713 0257 06       		.uleb128 0x6
+ 714 0258 F20C0000 		.4byte	.LASF77
+ 715 025c D700     		.sleb128 87
+ 716 025e 06       		.uleb128 0x6
+ 717 025f 38070000 		.4byte	.LASF78
+ 718 0263 D800     		.sleb128 88
+ 719 0265 06       		.uleb128 0x6
+ 720 0266 66050000 		.4byte	.LASF79
+ 721 026a F000     		.sleb128 112
+ 722 026c 06       		.uleb128 0x6
+ 723 026d B3100000 		.4byte	.LASF80
+ 724 0271 F100     		.sleb128 113
+ 725 0273 06       		.uleb128 0x6
+ 726 0274 D8080000 		.4byte	.LASF81
+ 727 0278 F200     		.sleb128 114
+ 728 027a 06       		.uleb128 0x6
+ 729 027b B3010000 		.4byte	.LASF82
+ 730 027f F300     		.sleb128 115
+ 731 0281 06       		.uleb128 0x6
+ 732 0282 AF0A0000 		.4byte	.LASF83
+ 733 0286 F400     		.sleb128 116
+ 734 0288 06       		.uleb128 0x6
+ 735 0289 C6040000 		.4byte	.LASF84
+ 736 028d F500     		.sleb128 117
+ 737 028f 06       		.uleb128 0x6
+ 738 0290 D4000000 		.4byte	.LASF85
+ 739 0294 F600     		.sleb128 118
+ 740 0296 06       		.uleb128 0x6
+ 741 0297 53000000 		.4byte	.LASF86
+ 742 029b F700     		.sleb128 119
+ 743 029d 06       		.uleb128 0x6
+ 744 029e 00000000 		.4byte	.LASF87
+ 745 02a2 F800     		.sleb128 120
+ 746 02a4 06       		.uleb128 0x6
+ 747 02a5 3F0D0000 		.4byte	.LASF88
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 19
+
+
+ 748 02a9 F900     		.sleb128 121
+ 749 02ab 06       		.uleb128 0x6
+ 750 02ac 8C050000 		.4byte	.LASF89
+ 751 02b0 FA00     		.sleb128 122
+ 752 02b2 06       		.uleb128 0x6
+ 753 02b3 AC020000 		.4byte	.LASF90
+ 754 02b7 FA01     		.sleb128 250
+ 755 02b9 06       		.uleb128 0x6
+ 756 02ba 6A060000 		.4byte	.LASF91
+ 757 02be FB01     		.sleb128 251
+ 758 02c0 06       		.uleb128 0x6
+ 759 02c1 2F050000 		.4byte	.LASF92
+ 760 02c5 FF01     		.sleb128 255
+ 761 02c7 00       		.byte	0
+ 762 02c8 09       		.uleb128 0x9
+ 763 02c9 02       		.byte	0x2
+ 764 02ca 04       		.byte	0x4
+ 765 02cb FF02     		.2byte	0x2ff
+ 766 02cd 98030000 		.4byte	0x398
+ 767 02d1 06       		.uleb128 0x6
+ 768 02d2 3D050000 		.4byte	.LASF93
+ 769 02d6 00       		.sleb128 0
+ 770 02d7 06       		.uleb128 0x6
+ 771 02d8 E7040000 		.4byte	.LASF94
+ 772 02dc 01       		.sleb128 1
+ 773 02dd 06       		.uleb128 0x6
+ 774 02de EF0D0000 		.4byte	.LASF95
+ 775 02e2 02       		.sleb128 2
+ 776 02e3 06       		.uleb128 0x6
+ 777 02e4 86000000 		.4byte	.LASF96
+ 778 02e8 03       		.sleb128 3
+ 779 02e9 06       		.uleb128 0x6
+ 780 02ea 55020000 		.4byte	.LASF97
+ 781 02ee 04       		.sleb128 4
+ 782 02ef 06       		.uleb128 0x6
+ 783 02f0 4C060000 		.4byte	.LASF98
+ 784 02f4 05       		.sleb128 5
+ 785 02f5 06       		.uleb128 0x6
+ 786 02f6 F80B0000 		.4byte	.LASF99
+ 787 02fa 06       		.sleb128 6
+ 788 02fb 06       		.uleb128 0x6
+ 789 02fc 8E030000 		.4byte	.LASF100
+ 790 0300 07       		.sleb128 7
+ 791 0301 06       		.uleb128 0x6
+ 792 0302 470C0000 		.4byte	.LASF101
+ 793 0306 08       		.sleb128 8
+ 794 0307 06       		.uleb128 0x6
+ 795 0308 35100000 		.4byte	.LASF102
+ 796 030c 09       		.sleb128 9
+ 797 030d 06       		.uleb128 0x6
+ 798 030e 550B0000 		.4byte	.LASF103
+ 799 0312 0A       		.sleb128 10
+ 800 0313 06       		.uleb128 0x6
+ 801 0314 A30C0000 		.4byte	.LASF104
+ 802 0318 0B       		.sleb128 11
+ 803 0319 06       		.uleb128 0x6
+ 804 031a CA020000 		.4byte	.LASF105
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 20
+
+
+ 805 031e 0C       		.sleb128 12
+ 806 031f 06       		.uleb128 0x6
+ 807 0320 30020000 		.4byte	.LASF106
+ 808 0324 0D       		.sleb128 13
+ 809 0325 06       		.uleb128 0x6
+ 810 0326 89060000 		.4byte	.LASF107
+ 811 032a 0E       		.sleb128 14
+ 812 032b 06       		.uleb128 0x6
+ 813 032c F20E0000 		.4byte	.LASF108
+ 814 0330 0F       		.sleb128 15
+ 815 0331 06       		.uleb128 0x6
+ 816 0332 870D0000 		.4byte	.LASF109
+ 817 0336 10       		.sleb128 16
+ 818 0337 06       		.uleb128 0x6
+ 819 0338 69070000 		.4byte	.LASF110
+ 820 033c 11       		.sleb128 17
+ 821 033d 06       		.uleb128 0x6
+ 822 033e 77040000 		.4byte	.LASF111
+ 823 0342 12       		.sleb128 18
+ 824 0343 06       		.uleb128 0x6
+ 825 0344 2E110000 		.4byte	.LASF112
+ 826 0348 13       		.sleb128 19
+ 827 0349 06       		.uleb128 0x6
+ 828 034a 6C030000 		.4byte	.LASF113
+ 829 034e 27       		.sleb128 39
+ 830 034f 06       		.uleb128 0x6
+ 831 0350 620D0000 		.4byte	.LASF114
+ 832 0354 28       		.sleb128 40
+ 833 0355 06       		.uleb128 0x6
+ 834 0356 D60E0000 		.4byte	.LASF115
+ 835 035a 29       		.sleb128 41
+ 836 035b 06       		.uleb128 0x6
+ 837 035c 13020000 		.4byte	.LASF116
+ 838 0360 2A       		.sleb128 42
+ 839 0361 06       		.uleb128 0x6
+ 840 0362 F5000000 		.4byte	.LASF117
+ 841 0366 2B       		.sleb128 43
+ 842 0367 06       		.uleb128 0x6
+ 843 0368 46090000 		.4byte	.LASF118
+ 844 036c 2C       		.sleb128 44
+ 845 036d 06       		.uleb128 0x6
+ 846 036e 8D0E0000 		.4byte	.LASF119
+ 847 0372 FE01     		.sleb128 254
+ 848 0374 06       		.uleb128 0x6
+ 849 0375 36090000 		.4byte	.LASF120
+ 850 0379 FF01     		.sleb128 255
+ 851 037b 06       		.uleb128 0x6
+ 852 037c 93070000 		.4byte	.LASF121
+ 853 0380 8002     		.sleb128 256
+ 854 0382 06       		.uleb128 0x6
+ 855 0383 960A0000 		.4byte	.LASF122
+ 856 0387 8102     		.sleb128 257
+ 857 0389 06       		.uleb128 0x6
+ 858 038a 6F0B0000 		.4byte	.LASF123
+ 859 038e 8202     		.sleb128 258
+ 860 0390 06       		.uleb128 0x6
+ 861 0391 DB030000 		.4byte	.LASF124
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 21
+
+
+ 862 0395 8302     		.sleb128 259
+ 863 0397 00       		.byte	0
+ 864 0398 04       		.uleb128 0x4
+ 865 0399 620A0000 		.4byte	.LASF125
+ 866 039d 04       		.byte	0x4
+ 867 039e 6B03     		.2byte	0x36b
+ 868 03a0 C8020000 		.4byte	0x2c8
+ 869 03a4 09       		.uleb128 0x9
+ 870 03a5 01       		.byte	0x1
+ 871 03a6 04       		.byte	0x4
+ 872 03a7 6F03     		.2byte	0x36f
+ 873 03a9 CD030000 		.4byte	0x3cd
+ 874 03ad 06       		.uleb128 0x6
+ 875 03ae D9100000 		.4byte	.LASF126
+ 876 03b2 01       		.sleb128 1
+ 877 03b3 06       		.uleb128 0x6
+ 878 03b4 910C0000 		.4byte	.LASF127
+ 879 03b8 02       		.sleb128 2
+ 880 03b9 06       		.uleb128 0x6
+ 881 03ba 4D0F0000 		.4byte	.LASF128
+ 882 03be 03       		.sleb128 3
+ 883 03bf 06       		.uleb128 0x6
+ 884 03c0 4B0E0000 		.4byte	.LASF129
+ 885 03c4 04       		.sleb128 4
+ 886 03c5 06       		.uleb128 0x6
+ 887 03c6 E2060000 		.4byte	.LASF130
+ 888 03ca FF01     		.sleb128 255
+ 889 03cc 00       		.byte	0
+ 890 03cd 0A       		.uleb128 0xa
+ 891 03ce 08       		.byte	0x8
+ 892 03cf 05       		.byte	0x5
+ 893 03d0 3C03     		.2byte	0x33c
+ 894 03d2 0B040000 		.4byte	0x40b
+ 895 03d6 0B       		.uleb128 0xb
+ 896 03d7 CD0A0000 		.4byte	.LASF131
+ 897 03db 05       		.byte	0x5
+ 898 03dc 4303     		.2byte	0x343
+ 899 03de 77000000 		.4byte	0x77
+ 900 03e2 00       		.byte	0
+ 901 03e3 0B       		.uleb128 0xb
+ 902 03e4 120C0000 		.4byte	.LASF132
+ 903 03e8 05       		.byte	0x5
+ 904 03e9 4A03     		.2byte	0x34a
+ 905 03eb 77000000 		.4byte	0x77
+ 906 03ef 02       		.byte	0x2
+ 907 03f0 0B       		.uleb128 0xb
+ 908 03f1 2A090000 		.4byte	.LASF133
+ 909 03f5 05       		.byte	0x5
+ 910 03f6 4F03     		.2byte	0x34f
+ 911 03f8 77000000 		.4byte	0x77
+ 912 03fc 04       		.byte	0x4
+ 913 03fd 0B       		.uleb128 0xb
+ 914 03fe 5B070000 		.4byte	.LASF134
+ 915 0402 05       		.byte	0x5
+ 916 0403 5503     		.2byte	0x355
+ 917 0405 77000000 		.4byte	0x77
+ 918 0409 06       		.byte	0x6
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 22
+
+
+ 919 040a 00       		.byte	0
+ 920 040b 04       		.uleb128 0x4
+ 921 040c C4060000 		.4byte	.LASF135
+ 922 0410 05       		.byte	0x5
+ 923 0411 5703     		.2byte	0x357
+ 924 0413 CD030000 		.4byte	0x3cd
+ 925 0417 0A       		.uleb128 0xa
+ 926 0418 02       		.byte	0x2
+ 927 0419 06       		.byte	0x6
+ 928 041a 9C01     		.2byte	0x19c
+ 929 041c 3B040000 		.4byte	0x43b
+ 930 0420 0B       		.uleb128 0xb
+ 931 0421 6E100000 		.4byte	.LASF136
+ 932 0425 06       		.byte	0x6
+ 933 0426 A301     		.2byte	0x1a3
+ 934 0428 6B000000 		.4byte	0x6b
+ 935 042c 00       		.byte	0
+ 936 042d 0B       		.uleb128 0xb
+ 937 042e D2080000 		.4byte	.LASF137
+ 938 0432 06       		.byte	0x6
+ 939 0433 A901     		.2byte	0x1a9
+ 940 0435 6B000000 		.4byte	0x6b
+ 941 0439 01       		.byte	0x1
+ 942 043a 00       		.byte	0
+ 943 043b 04       		.uleb128 0x4
+ 944 043c 72000000 		.4byte	.LASF138
+ 945 0440 06       		.byte	0x6
+ 946 0441 AB01     		.2byte	0x1ab
+ 947 0443 17040000 		.4byte	0x417
+ 948 0447 09       		.uleb128 0x9
+ 949 0448 01       		.byte	0x1
+ 950 0449 07       		.byte	0x7
+ 951 044a BF07     		.2byte	0x7bf
+ 952 044c 6F040000 		.4byte	0x46f
+ 953 0450 06       		.uleb128 0x6
+ 954 0451 3F000000 		.4byte	.LASF139
+ 955 0455 00       		.sleb128 0
+ 956 0456 06       		.uleb128 0x6
+ 957 0457 88090000 		.4byte	.LASF140
+ 958 045b 01       		.sleb128 1
+ 959 045c 06       		.uleb128 0x6
+ 960 045d 170F0000 		.4byte	.LASF141
+ 961 0461 02       		.sleb128 2
+ 962 0462 06       		.uleb128 0x6
+ 963 0463 27030000 		.4byte	.LASF142
+ 964 0467 03       		.sleb128 3
+ 965 0468 06       		.uleb128 0x6
+ 966 0469 36040000 		.4byte	.LASF143
+ 967 046d 04       		.sleb128 4
+ 968 046e 00       		.byte	0
+ 969 046f 04       		.uleb128 0x4
+ 970 0470 610E0000 		.4byte	.LASF144
+ 971 0474 07       		.byte	0x7
+ 972 0475 CD07     		.2byte	0x7cd
+ 973 0477 47040000 		.4byte	0x447
+ 974 047b 0C       		.uleb128 0xc
+ 975 047c FA070000 		.4byte	.LASF157
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 23
+
+
+ 976 0480 01       		.byte	0x1
+ 977 0481 39       		.byte	0x39
+ 978 0482 6B000000 		.4byte	0x6b
+ 979 0486 00000000 		.4byte	.LFB37
+ 980 048a 34000000 		.4byte	.LFE37-.LFB37
+ 981 048e 01       		.uleb128 0x1
+ 982 048f 9C       		.byte	0x9c
+ 983 0490 A3040000 		.4byte	0x4a3
+ 984 0494 0D       		.uleb128 0xd
+ 985 0495 580A0000 		.4byte	.LASF148
+ 986 0499 01       		.byte	0x1
+ 987 049a 3B       		.byte	0x3b
+ 988 049b 98030000 		.4byte	0x398
+ 989 049f 02       		.uleb128 0x2
+ 990 04a0 91       		.byte	0x91
+ 991 04a1 6E       		.sleb128 -18
+ 992 04a2 00       		.byte	0
+ 993 04a3 0E       		.uleb128 0xe
+ 994 04a4 E10D0000 		.4byte	.LASF158
+ 995 04a8 01       		.byte	0x1
+ 996 04a9 56       		.byte	0x56
+ 997 04aa 00000000 		.4byte	.LFB38
+ 998 04ae 1C000000 		.4byte	.LFE38-.LFB38
+ 999 04b2 01       		.uleb128 0x1
+ 1000 04b3 9C       		.byte	0x9c
+ 1001 04b4 0F       		.uleb128 0xf
+ 1002 04b5 2E040000 		.4byte	.LASF159
+ 1003 04b9 01       		.byte	0x1
+ 1004 04ba 6C       		.byte	0x6c
+ 1005 04bb 00000000 		.4byte	.LFB39
+ 1006 04bf 20000000 		.4byte	.LFE39-.LFB39
+ 1007 04c3 01       		.uleb128 0x1
+ 1008 04c4 9C       		.byte	0x9c
+ 1009 04c5 10       		.uleb128 0x10
+ 1010 04c6 A90E0000 		.4byte	.LASF160
+ 1011 04ca 01       		.byte	0x1
+ 1012 04cb 8A       		.byte	0x8a
+ 1013 04cc 00000000 		.4byte	.LFB40
+ 1014 04d0 EC000000 		.4byte	.LFE40-.LFB40
+ 1015 04d4 01       		.uleb128 0x1
+ 1016 04d5 9C       		.byte	0x9c
+ 1017 04d6 F7040000 		.4byte	0x4f7
+ 1018 04da 11       		.uleb128 0x11
+ 1019 04db 8D070000 		.4byte	.LASF145
+ 1020 04df 01       		.byte	0x1
+ 1021 04e0 8A       		.byte	0x8a
+ 1022 04e1 83000000 		.4byte	0x83
+ 1023 04e5 02       		.uleb128 0x2
+ 1024 04e6 91       		.byte	0x91
+ 1025 04e7 74       		.sleb128 -12
+ 1026 04e8 11       		.uleb128 0x11
+ 1027 04e9 400E0000 		.4byte	.LASF146
+ 1028 04ed 01       		.byte	0x1
+ 1029 04ee 8A       		.byte	0x8a
+ 1030 04ef 09010000 		.4byte	0x109
+ 1031 04f3 02       		.uleb128 0x2
+ 1032 04f4 91       		.byte	0x91
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 24
+
+
+ 1033 04f5 70       		.sleb128 -16
+ 1034 04f6 00       		.byte	0
+ 1035 04f7 12       		.uleb128 0x12
+ 1036 04f8 630F0000 		.4byte	.LASF161
+ 1037 04fc 01       		.byte	0x1
+ 1038 04fd E6       		.byte	0xe6
+ 1039 04fe 00000000 		.4byte	.LFB41
+ 1040 0502 68000000 		.4byte	.LFE41-.LFB41
+ 1041 0506 01       		.uleb128 0x1
+ 1042 0507 9C       		.byte	0x9c
+ 1043 0508 33050000 		.4byte	0x533
+ 1044 050c 11       		.uleb128 0x11
+ 1045 050d 0D0E0000 		.4byte	.LASF147
+ 1046 0511 01       		.byte	0x1
+ 1047 0512 E6       		.byte	0xe6
+ 1048 0513 BF000000 		.4byte	0xbf
+ 1049 0517 02       		.uleb128 0x2
+ 1050 0518 91       		.byte	0x91
+ 1051 0519 67       		.sleb128 -25
+ 1052 051a 13       		.uleb128 0x13
+ 1053 051b 1C000000 		.4byte	.LBB2
+ 1054 051f 36000000 		.4byte	.LBE2-.LBB2
+ 1055 0523 0D       		.uleb128 0xd
+ 1056 0524 3D0C0000 		.4byte	.LASF149
+ 1057 0528 01       		.byte	0x1
+ 1058 0529 EA       		.byte	0xea
+ 1059 052a 98030000 		.4byte	0x398
+ 1060 052e 02       		.uleb128 0x2
+ 1061 052f 91       		.byte	0x91
+ 1062 0530 6E       		.sleb128 -18
+ 1063 0531 00       		.byte	0
+ 1064 0532 00       		.byte	0
+ 1065 0533 0D       		.uleb128 0xd
+ 1066 0534 0D0E0000 		.4byte	.LASF147
+ 1067 0538 01       		.byte	0x1
+ 1068 0539 17       		.byte	0x17
+ 1069 053a BF000000 		.4byte	0xbf
+ 1070 053e 05       		.uleb128 0x5
+ 1071 053f 03       		.byte	0x3
+ 1072 0540 00000000 		.4byte	connectionParamIndex
+ 1073 0544 0D       		.uleb128 0xd
+ 1074 0545 77100000 		.4byte	.LASF150
+ 1075 0549 01       		.byte	0x1
+ 1076 054a 18       		.byte	0x18
+ 1077 054b F7000000 		.4byte	0xf7
+ 1078 054f 05       		.uleb128 0x5
+ 1079 0550 03       		.byte	0x3
+ 1080 0551 01000000 		.4byte	connectionParamState
+ 1081 0555 14       		.uleb128 0x14
+ 1082 0556 0B040000 		.4byte	0x40b
+ 1083 055a 65050000 		.4byte	0x565
+ 1084 055e 15       		.uleb128 0x15
+ 1085 055f 02010000 		.4byte	0x102
+ 1086 0563 01       		.byte	0x1
+ 1087 0564 00       		.byte	0
+ 1088 0565 0D       		.uleb128 0xd
+ 1089 0566 070A0000 		.4byte	.LASF151
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 25
+
+
+ 1090 056a 01       		.byte	0x1
+ 1091 056b 1A       		.byte	0x1a
+ 1092 056c 55050000 		.4byte	0x555
+ 1093 0570 05       		.uleb128 0x5
+ 1094 0571 03       		.byte	0x3
+ 1095 0572 00000000 		.4byte	midiConnectionParam
+ 1096 0576 16       		.uleb128 0x16
+ 1097 0577 85080000 		.4byte	.LASF152
+ 1098 057b 07       		.byte	0x7
+ 1099 057c DA09     		.2byte	0x9da
+ 1100 057e 6F040000 		.4byte	0x46f
+ 1101 0582 16       		.uleb128 0x16
+ 1102 0583 BB090000 		.4byte	.LASF153
+ 1103 0587 07       		.byte	0x7
+ 1104 0588 DB09     		.2byte	0x9db
+ 1105 058a 3B040000 		.4byte	0x43b
+ 1106 058e 00       		.byte	0
+ 1107              		.section	.debug_abbrev,"",%progbits
+ 1108              	.Ldebug_abbrev0:
+ 1109 0000 01       		.uleb128 0x1
+ 1110 0001 11       		.uleb128 0x11
+ 1111 0002 01       		.byte	0x1
+ 1112 0003 25       		.uleb128 0x25
+ 1113 0004 0E       		.uleb128 0xe
+ 1114 0005 13       		.uleb128 0x13
+ 1115 0006 0B       		.uleb128 0xb
+ 1116 0007 03       		.uleb128 0x3
+ 1117 0008 0E       		.uleb128 0xe
+ 1118 0009 1B       		.uleb128 0x1b
+ 1119 000a 0E       		.uleb128 0xe
+ 1120 000b 55       		.uleb128 0x55
+ 1121 000c 17       		.uleb128 0x17
+ 1122 000d 11       		.uleb128 0x11
+ 1123 000e 01       		.uleb128 0x1
+ 1124 000f 10       		.uleb128 0x10
+ 1125 0010 17       		.uleb128 0x17
+ 1126 0011 00       		.byte	0
+ 1127 0012 00       		.byte	0
+ 1128 0013 02       		.uleb128 0x2
+ 1129 0014 24       		.uleb128 0x24
+ 1130 0015 00       		.byte	0
+ 1131 0016 0B       		.uleb128 0xb
+ 1132 0017 0B       		.uleb128 0xb
+ 1133 0018 3E       		.uleb128 0x3e
+ 1134 0019 0B       		.uleb128 0xb
+ 1135 001a 03       		.uleb128 0x3
+ 1136 001b 0E       		.uleb128 0xe
+ 1137 001c 00       		.byte	0
+ 1138 001d 00       		.byte	0
+ 1139 001e 03       		.uleb128 0x3
+ 1140 001f 24       		.uleb128 0x24
+ 1141 0020 00       		.byte	0
+ 1142 0021 0B       		.uleb128 0xb
+ 1143 0022 0B       		.uleb128 0xb
+ 1144 0023 3E       		.uleb128 0x3e
+ 1145 0024 0B       		.uleb128 0xb
+ 1146 0025 03       		.uleb128 0x3
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 26
+
+
+ 1147 0026 08       		.uleb128 0x8
+ 1148 0027 00       		.byte	0
+ 1149 0028 00       		.byte	0
+ 1150 0029 04       		.uleb128 0x4
+ 1151 002a 16       		.uleb128 0x16
+ 1152 002b 00       		.byte	0
+ 1153 002c 03       		.uleb128 0x3
+ 1154 002d 0E       		.uleb128 0xe
+ 1155 002e 3A       		.uleb128 0x3a
+ 1156 002f 0B       		.uleb128 0xb
+ 1157 0030 3B       		.uleb128 0x3b
+ 1158 0031 05       		.uleb128 0x5
+ 1159 0032 49       		.uleb128 0x49
+ 1160 0033 13       		.uleb128 0x13
+ 1161 0034 00       		.byte	0
+ 1162 0035 00       		.byte	0
+ 1163 0036 05       		.uleb128 0x5
+ 1164 0037 04       		.uleb128 0x4
+ 1165 0038 01       		.byte	0x1
+ 1166 0039 0B       		.uleb128 0xb
+ 1167 003a 0B       		.uleb128 0xb
+ 1168 003b 3A       		.uleb128 0x3a
+ 1169 003c 0B       		.uleb128 0xb
+ 1170 003d 3B       		.uleb128 0x3b
+ 1171 003e 0B       		.uleb128 0xb
+ 1172 003f 01       		.uleb128 0x1
+ 1173 0040 13       		.uleb128 0x13
+ 1174 0041 00       		.byte	0
+ 1175 0042 00       		.byte	0
+ 1176 0043 06       		.uleb128 0x6
+ 1177 0044 28       		.uleb128 0x28
+ 1178 0045 00       		.byte	0
+ 1179 0046 03       		.uleb128 0x3
+ 1180 0047 0E       		.uleb128 0xe
+ 1181 0048 1C       		.uleb128 0x1c
+ 1182 0049 0D       		.uleb128 0xd
+ 1183 004a 00       		.byte	0
+ 1184 004b 00       		.byte	0
+ 1185 004c 07       		.uleb128 0x7
+ 1186 004d 16       		.uleb128 0x16
+ 1187 004e 00       		.byte	0
+ 1188 004f 03       		.uleb128 0x3
+ 1189 0050 0E       		.uleb128 0xe
+ 1190 0051 3A       		.uleb128 0x3a
+ 1191 0052 0B       		.uleb128 0xb
+ 1192 0053 3B       		.uleb128 0x3b
+ 1193 0054 0B       		.uleb128 0xb
+ 1194 0055 49       		.uleb128 0x49
+ 1195 0056 13       		.uleb128 0x13
+ 1196 0057 00       		.byte	0
+ 1197 0058 00       		.byte	0
+ 1198 0059 08       		.uleb128 0x8
+ 1199 005a 0F       		.uleb128 0xf
+ 1200 005b 00       		.byte	0
+ 1201 005c 0B       		.uleb128 0xb
+ 1202 005d 0B       		.uleb128 0xb
+ 1203 005e 00       		.byte	0
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 27
+
+
+ 1204 005f 00       		.byte	0
+ 1205 0060 09       		.uleb128 0x9
+ 1206 0061 04       		.uleb128 0x4
+ 1207 0062 01       		.byte	0x1
+ 1208 0063 0B       		.uleb128 0xb
+ 1209 0064 0B       		.uleb128 0xb
+ 1210 0065 3A       		.uleb128 0x3a
+ 1211 0066 0B       		.uleb128 0xb
+ 1212 0067 3B       		.uleb128 0x3b
+ 1213 0068 05       		.uleb128 0x5
+ 1214 0069 01       		.uleb128 0x1
+ 1215 006a 13       		.uleb128 0x13
+ 1216 006b 00       		.byte	0
+ 1217 006c 00       		.byte	0
+ 1218 006d 0A       		.uleb128 0xa
+ 1219 006e 13       		.uleb128 0x13
+ 1220 006f 01       		.byte	0x1
+ 1221 0070 0B       		.uleb128 0xb
+ 1222 0071 0B       		.uleb128 0xb
+ 1223 0072 3A       		.uleb128 0x3a
+ 1224 0073 0B       		.uleb128 0xb
+ 1225 0074 3B       		.uleb128 0x3b
+ 1226 0075 05       		.uleb128 0x5
+ 1227 0076 01       		.uleb128 0x1
+ 1228 0077 13       		.uleb128 0x13
+ 1229 0078 00       		.byte	0
+ 1230 0079 00       		.byte	0
+ 1231 007a 0B       		.uleb128 0xb
+ 1232 007b 0D       		.uleb128 0xd
+ 1233 007c 00       		.byte	0
+ 1234 007d 03       		.uleb128 0x3
+ 1235 007e 0E       		.uleb128 0xe
+ 1236 007f 3A       		.uleb128 0x3a
+ 1237 0080 0B       		.uleb128 0xb
+ 1238 0081 3B       		.uleb128 0x3b
+ 1239 0082 05       		.uleb128 0x5
+ 1240 0083 49       		.uleb128 0x49
+ 1241 0084 13       		.uleb128 0x13
+ 1242 0085 38       		.uleb128 0x38
+ 1243 0086 0B       		.uleb128 0xb
+ 1244 0087 00       		.byte	0
+ 1245 0088 00       		.byte	0
+ 1246 0089 0C       		.uleb128 0xc
+ 1247 008a 2E       		.uleb128 0x2e
+ 1248 008b 01       		.byte	0x1
+ 1249 008c 3F       		.uleb128 0x3f
+ 1250 008d 19       		.uleb128 0x19
+ 1251 008e 03       		.uleb128 0x3
+ 1252 008f 0E       		.uleb128 0xe
+ 1253 0090 3A       		.uleb128 0x3a
+ 1254 0091 0B       		.uleb128 0xb
+ 1255 0092 3B       		.uleb128 0x3b
+ 1256 0093 0B       		.uleb128 0xb
+ 1257 0094 27       		.uleb128 0x27
+ 1258 0095 19       		.uleb128 0x19
+ 1259 0096 49       		.uleb128 0x49
+ 1260 0097 13       		.uleb128 0x13
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 28
+
+
+ 1261 0098 11       		.uleb128 0x11
+ 1262 0099 01       		.uleb128 0x1
+ 1263 009a 12       		.uleb128 0x12
+ 1264 009b 06       		.uleb128 0x6
+ 1265 009c 40       		.uleb128 0x40
+ 1266 009d 18       		.uleb128 0x18
+ 1267 009e 9642     		.uleb128 0x2116
+ 1268 00a0 19       		.uleb128 0x19
+ 1269 00a1 01       		.uleb128 0x1
+ 1270 00a2 13       		.uleb128 0x13
+ 1271 00a3 00       		.byte	0
+ 1272 00a4 00       		.byte	0
+ 1273 00a5 0D       		.uleb128 0xd
+ 1274 00a6 34       		.uleb128 0x34
+ 1275 00a7 00       		.byte	0
+ 1276 00a8 03       		.uleb128 0x3
+ 1277 00a9 0E       		.uleb128 0xe
+ 1278 00aa 3A       		.uleb128 0x3a
+ 1279 00ab 0B       		.uleb128 0xb
+ 1280 00ac 3B       		.uleb128 0x3b
+ 1281 00ad 0B       		.uleb128 0xb
+ 1282 00ae 49       		.uleb128 0x49
+ 1283 00af 13       		.uleb128 0x13
+ 1284 00b0 02       		.uleb128 0x2
+ 1285 00b1 18       		.uleb128 0x18
+ 1286 00b2 00       		.byte	0
+ 1287 00b3 00       		.byte	0
+ 1288 00b4 0E       		.uleb128 0xe
+ 1289 00b5 2E       		.uleb128 0x2e
+ 1290 00b6 00       		.byte	0
+ 1291 00b7 03       		.uleb128 0x3
+ 1292 00b8 0E       		.uleb128 0xe
+ 1293 00b9 3A       		.uleb128 0x3a
+ 1294 00ba 0B       		.uleb128 0xb
+ 1295 00bb 3B       		.uleb128 0x3b
+ 1296 00bc 0B       		.uleb128 0xb
+ 1297 00bd 27       		.uleb128 0x27
+ 1298 00be 19       		.uleb128 0x19
+ 1299 00bf 11       		.uleb128 0x11
+ 1300 00c0 01       		.uleb128 0x1
+ 1301 00c1 12       		.uleb128 0x12
+ 1302 00c2 06       		.uleb128 0x6
+ 1303 00c3 40       		.uleb128 0x40
+ 1304 00c4 18       		.uleb128 0x18
+ 1305 00c5 9742     		.uleb128 0x2117
+ 1306 00c7 19       		.uleb128 0x19
+ 1307 00c8 00       		.byte	0
+ 1308 00c9 00       		.byte	0
+ 1309 00ca 0F       		.uleb128 0xf
+ 1310 00cb 2E       		.uleb128 0x2e
+ 1311 00cc 00       		.byte	0
+ 1312 00cd 3F       		.uleb128 0x3f
+ 1313 00ce 19       		.uleb128 0x19
+ 1314 00cf 03       		.uleb128 0x3
+ 1315 00d0 0E       		.uleb128 0xe
+ 1316 00d1 3A       		.uleb128 0x3a
+ 1317 00d2 0B       		.uleb128 0xb
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 29
+
+
+ 1318 00d3 3B       		.uleb128 0x3b
+ 1319 00d4 0B       		.uleb128 0xb
+ 1320 00d5 27       		.uleb128 0x27
+ 1321 00d6 19       		.uleb128 0x19
+ 1322 00d7 11       		.uleb128 0x11
+ 1323 00d8 01       		.uleb128 0x1
+ 1324 00d9 12       		.uleb128 0x12
+ 1325 00da 06       		.uleb128 0x6
+ 1326 00db 40       		.uleb128 0x40
+ 1327 00dc 18       		.uleb128 0x18
+ 1328 00dd 9642     		.uleb128 0x2116
+ 1329 00df 19       		.uleb128 0x19
+ 1330 00e0 00       		.byte	0
+ 1331 00e1 00       		.byte	0
+ 1332 00e2 10       		.uleb128 0x10
+ 1333 00e3 2E       		.uleb128 0x2e
+ 1334 00e4 01       		.byte	0x1
+ 1335 00e5 3F       		.uleb128 0x3f
+ 1336 00e6 19       		.uleb128 0x19
+ 1337 00e7 03       		.uleb128 0x3
+ 1338 00e8 0E       		.uleb128 0xe
+ 1339 00e9 3A       		.uleb128 0x3a
+ 1340 00ea 0B       		.uleb128 0xb
+ 1341 00eb 3B       		.uleb128 0x3b
+ 1342 00ec 0B       		.uleb128 0xb
+ 1343 00ed 27       		.uleb128 0x27
+ 1344 00ee 19       		.uleb128 0x19
+ 1345 00ef 11       		.uleb128 0x11
+ 1346 00f0 01       		.uleb128 0x1
+ 1347 00f1 12       		.uleb128 0x12
+ 1348 00f2 06       		.uleb128 0x6
+ 1349 00f3 40       		.uleb128 0x40
+ 1350 00f4 18       		.uleb128 0x18
+ 1351 00f5 9642     		.uleb128 0x2116
+ 1352 00f7 19       		.uleb128 0x19
+ 1353 00f8 01       		.uleb128 0x1
+ 1354 00f9 13       		.uleb128 0x13
+ 1355 00fa 00       		.byte	0
+ 1356 00fb 00       		.byte	0
+ 1357 00fc 11       		.uleb128 0x11
+ 1358 00fd 05       		.uleb128 0x5
+ 1359 00fe 00       		.byte	0
+ 1360 00ff 03       		.uleb128 0x3
+ 1361 0100 0E       		.uleb128 0xe
+ 1362 0101 3A       		.uleb128 0x3a
+ 1363 0102 0B       		.uleb128 0xb
+ 1364 0103 3B       		.uleb128 0x3b
+ 1365 0104 0B       		.uleb128 0xb
+ 1366 0105 49       		.uleb128 0x49
+ 1367 0106 13       		.uleb128 0x13
+ 1368 0107 02       		.uleb128 0x2
+ 1369 0108 18       		.uleb128 0x18
+ 1370 0109 00       		.byte	0
+ 1371 010a 00       		.byte	0
+ 1372 010b 12       		.uleb128 0x12
+ 1373 010c 2E       		.uleb128 0x2e
+ 1374 010d 01       		.byte	0x1
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 30
+
+
+ 1375 010e 03       		.uleb128 0x3
+ 1376 010f 0E       		.uleb128 0xe
+ 1377 0110 3A       		.uleb128 0x3a
+ 1378 0111 0B       		.uleb128 0xb
+ 1379 0112 3B       		.uleb128 0x3b
+ 1380 0113 0B       		.uleb128 0xb
+ 1381 0114 27       		.uleb128 0x27
+ 1382 0115 19       		.uleb128 0x19
+ 1383 0116 11       		.uleb128 0x11
+ 1384 0117 01       		.uleb128 0x1
+ 1385 0118 12       		.uleb128 0x12
+ 1386 0119 06       		.uleb128 0x6
+ 1387 011a 40       		.uleb128 0x40
+ 1388 011b 18       		.uleb128 0x18
+ 1389 011c 9642     		.uleb128 0x2116
+ 1390 011e 19       		.uleb128 0x19
+ 1391 011f 01       		.uleb128 0x1
+ 1392 0120 13       		.uleb128 0x13
+ 1393 0121 00       		.byte	0
+ 1394 0122 00       		.byte	0
+ 1395 0123 13       		.uleb128 0x13
+ 1396 0124 0B       		.uleb128 0xb
+ 1397 0125 01       		.byte	0x1
+ 1398 0126 11       		.uleb128 0x11
+ 1399 0127 01       		.uleb128 0x1
+ 1400 0128 12       		.uleb128 0x12
+ 1401 0129 06       		.uleb128 0x6
+ 1402 012a 00       		.byte	0
+ 1403 012b 00       		.byte	0
+ 1404 012c 14       		.uleb128 0x14
+ 1405 012d 01       		.uleb128 0x1
+ 1406 012e 01       		.byte	0x1
+ 1407 012f 49       		.uleb128 0x49
+ 1408 0130 13       		.uleb128 0x13
+ 1409 0131 01       		.uleb128 0x1
+ 1410 0132 13       		.uleb128 0x13
+ 1411 0133 00       		.byte	0
+ 1412 0134 00       		.byte	0
+ 1413 0135 15       		.uleb128 0x15
+ 1414 0136 21       		.uleb128 0x21
+ 1415 0137 00       		.byte	0
+ 1416 0138 49       		.uleb128 0x49
+ 1417 0139 13       		.uleb128 0x13
+ 1418 013a 2F       		.uleb128 0x2f
+ 1419 013b 0B       		.uleb128 0xb
+ 1420 013c 00       		.byte	0
+ 1421 013d 00       		.byte	0
+ 1422 013e 16       		.uleb128 0x16
+ 1423 013f 34       		.uleb128 0x34
+ 1424 0140 00       		.byte	0
+ 1425 0141 03       		.uleb128 0x3
+ 1426 0142 0E       		.uleb128 0xe
+ 1427 0143 3A       		.uleb128 0x3a
+ 1428 0144 0B       		.uleb128 0xb
+ 1429 0145 3B       		.uleb128 0x3b
+ 1430 0146 05       		.uleb128 0x5
+ 1431 0147 49       		.uleb128 0x49
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 31
+
+
+ 1432 0148 13       		.uleb128 0x13
+ 1433 0149 3F       		.uleb128 0x3f
+ 1434 014a 19       		.uleb128 0x19
+ 1435 014b 3C       		.uleb128 0x3c
+ 1436 014c 19       		.uleb128 0x19
+ 1437 014d 00       		.byte	0
+ 1438 014e 00       		.byte	0
+ 1439 014f 00       		.byte	0
+ 1440              		.section	.debug_aranges,"",%progbits
+ 1441 0000 3C000000 		.4byte	0x3c
+ 1442 0004 0200     		.2byte	0x2
+ 1443 0006 00000000 		.4byte	.Ldebug_info0
+ 1444 000a 04       		.byte	0x4
+ 1445 000b 00       		.byte	0
+ 1446 000c 0000     		.2byte	0
+ 1447 000e 0000     		.2byte	0
+ 1448 0010 00000000 		.4byte	.LFB37
+ 1449 0014 34000000 		.4byte	.LFE37-.LFB37
+ 1450 0018 00000000 		.4byte	.LFB38
+ 1451 001c 1C000000 		.4byte	.LFE38-.LFB38
+ 1452 0020 00000000 		.4byte	.LFB39
+ 1453 0024 20000000 		.4byte	.LFE39-.LFB39
+ 1454 0028 00000000 		.4byte	.LFB40
+ 1455 002c EC000000 		.4byte	.LFE40-.LFB40
+ 1456 0030 00000000 		.4byte	.LFB41
+ 1457 0034 68000000 		.4byte	.LFE41-.LFB41
+ 1458 0038 00000000 		.4byte	0
+ 1459 003c 00000000 		.4byte	0
+ 1460              		.section	.debug_ranges,"",%progbits
+ 1461              	.Ldebug_ranges0:
+ 1462 0000 00000000 		.4byte	.LFB37
+ 1463 0004 34000000 		.4byte	.LFE37
+ 1464 0008 00000000 		.4byte	.LFB38
+ 1465 000c 1C000000 		.4byte	.LFE38
+ 1466 0010 00000000 		.4byte	.LFB39
+ 1467 0014 20000000 		.4byte	.LFE39
+ 1468 0018 00000000 		.4byte	.LFB40
+ 1469 001c EC000000 		.4byte	.LFE40
+ 1470 0020 00000000 		.4byte	.LFB41
+ 1471 0024 68000000 		.4byte	.LFE41
+ 1472 0028 00000000 		.4byte	0
+ 1473 002c 00000000 		.4byte	0
+ 1474              		.section	.debug_line,"",%progbits
+ 1475              	.Ldebug_line0:
+ 1476 0000 49010000 		.section	.debug_str,"MS",%progbits,1
+ 1476      0200AB00 
+ 1476      00000201 
+ 1476      FB0E0D00 
+ 1476      01010101 
+ 1477              	.LASF87:
+ 1478 0000 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_RX_CREDIT_IND\000"
+ 1478      455F4556 
+ 1478      545F4C32 
+ 1478      4341505F 
+ 1478      43424643 
+ 1479              	.LASF32:
+ 1480 0023 4359424C 		.ascii	"CYBLE_EVT_STACK_BUSY_STATUS\000"
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 32
+
+
+ 1480      455F4556 
+ 1480      545F5354 
+ 1480      41434B5F 
+ 1480      42555359 
+ 1481              	.LASF139:
+ 1482 003f 4359424C 		.ascii	"CYBLE_STATE_STOPPED\000"
+ 1482      455F5354 
+ 1482      4154455F 
+ 1482      53544F50 
+ 1482      50454400 
+ 1483              	.LASF86:
+ 1484 0053 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_DATA_READ\000"
+ 1484      455F4556 
+ 1484      545F4C32 
+ 1484      4341505F 
+ 1484      43424643 
+ 1485              	.LASF138:
+ 1486 0072 4359424C 		.ascii	"CYBLE_CONN_HANDLE_T\000"
+ 1486      455F434F 
+ 1486      4E4E5F48 
+ 1486      414E444C 
+ 1486      455F5400 
+ 1487              	.LASF96:
+ 1488 0086 4359424C 		.ascii	"CYBLE_ERROR_MEMORY_ALLOCATION_FAILED\000"
+ 1488      455F4552 
+ 1488      524F525F 
+ 1488      4D454D4F 
+ 1488      52595F41 
+ 1489              	.LASF44:
+ 1490 00ab 4359424C 		.ascii	"CYBLE_EVT_GAP_CONNECTION_UPDATE_COMPLETE\000"
+ 1490      455F4556 
+ 1490      545F4741 
+ 1490      505F434F 
+ 1490      4E4E4543 
+ 1491              	.LASF85:
+ 1492 00d4 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_DISCONN_CNF\000"
+ 1492      455F4556 
+ 1492      545F4C32 
+ 1492      4341505F 
+ 1492      43424643 
+ 1493              	.LASF117:
+ 1494 00f5 4359424C 		.ascii	"CYBLE_ERROR_UNSUPPORTED_FEATURE_OR_PARAMETER_VALUE\000"
+ 1494      455F4552 
+ 1494      524F525F 
+ 1494      554E5355 
+ 1494      50504F52 
+ 1495              	.LASF49:
+ 1496 0128 4359424C 		.ascii	"CYBLE_EVT_GAP_OOB_GENERATED_NOTIFICATION\000"
+ 1496      455F4556 
+ 1496      545F4741 
+ 1496      505F4F4F 
+ 1496      425F4745 
+ 1497              	.LASF65:
+ 1498 0151 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_MULTI_RSP\000"
+ 1498      455F4556 
+ 1498      545F4741 
+ 1498      5454435F 
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 33
+
+
+ 1498      52454144 
+ 1499              	.LASF70:
+ 1500 0170 4359424C 		.ascii	"CYBLE_EVT_GATTS_EXEC_WRITE_REQ\000"
+ 1500      455F4556 
+ 1500      545F4741 
+ 1500      5454535F 
+ 1500      45584543 
+ 1501              	.LASF23:
+ 1502 018f 434F4E4E 		.ascii	"CONNECTION_PARAMETER_REJECTED_STATE\000"
+ 1502      45435449 
+ 1502      4F4E5F50 
+ 1502      4152414D 
+ 1502      45544552 
+ 1503              	.LASF82:
+ 1504 01b3 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_CONN_IND\000"
+ 1504      455F4556 
+ 1504      545F4C32 
+ 1504      4341505F 
+ 1504      43424643 
+ 1505              	.LASF59:
+ 1506 01d1 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_BY_GROUP_TYPE_RSP\000"
+ 1506      455F4556 
+ 1506      545F4741 
+ 1506      5454435F 
+ 1506      52454144 
+ 1507              	.LASF29:
+ 1508 01f8 4359424C 		.ascii	"CYBLE_EVT_TIMEOUT\000"
+ 1508      455F4556 
+ 1508      545F5449 
+ 1508      4D454F55 
+ 1508      5400
+ 1509              	.LASF4:
+ 1510 020a 6C6F6E67 		.ascii	"long int\000"
+ 1510      20696E74 
+ 1510      00
+ 1511              	.LASF116:
+ 1512 0213 4359424C 		.ascii	"CYBLE_ERROR_HARDWARE_FAILURE\000"
+ 1512      455F4552 
+ 1512      524F525F 
+ 1512      48415244 
+ 1512      57415245 
+ 1513              	.LASF106:
+ 1514 0230 4359424C 		.ascii	"CYBLE_ERROR_L2CAP_PSM_WRONG_ENCODING\000"
+ 1514      455F4552 
+ 1514      524F525F 
+ 1514      4C324341 
+ 1514      505F5053 
+ 1515              	.LASF97:
+ 1516 0255 4359424C 		.ascii	"CYBLE_ERROR_INSUFFICIENT_RESOURCES\000"
+ 1516      455F4552 
+ 1516      524F525F 
+ 1516      494E5355 
+ 1516      46464943 
+ 1517              	.LASF31:
+ 1518 0278 4359424C 		.ascii	"CYBLE_EVT_HCI_STATUS\000"
+ 1518      455F4556 
+ 1518      545F4843 
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 34
+
+
+ 1518      495F5354 
+ 1518      41545553 
+ 1519              	.LASF45:
+ 1520 028d 4359424C 		.ascii	"CYBLE_EVT_GAPC_SCAN_START_STOP\000"
+ 1520      455F4556 
+ 1520      545F4741 
+ 1520      50435F53 
+ 1520      43414E5F 
+ 1521              	.LASF90:
+ 1522 02ac 4359424C 		.ascii	"CYBLE_EVT_PENDING_FLASH_WRITE\000"
+ 1522      455F4556 
+ 1522      545F5045 
+ 1522      4E44494E 
+ 1522      475F464C 
+ 1523              	.LASF105:
+ 1524 02ca 4359424C 		.ascii	"CYBLE_ERROR_SEC_FAILED\000"
+ 1524      455F4552 
+ 1524      524F525F 
+ 1524      5345435F 
+ 1524      4641494C 
+ 1525              	.LASF43:
+ 1526 02e1 4359424C 		.ascii	"CYBLE_EVT_GAP_ENCRYPT_CHANGE\000"
+ 1526      455F4556 
+ 1526      545F4741 
+ 1526      505F454E 
+ 1526      43525950 
+ 1527              	.LASF47:
+ 1528 02fe 4359424C 		.ascii	"CYBLE_EVT_GAP_NUMERIC_COMPARISON_REQUEST\000"
+ 1528      455F4556 
+ 1528      545F4741 
+ 1528      505F4E55 
+ 1528      4D455249 
+ 1529              	.LASF142:
+ 1530 0327 4359424C 		.ascii	"CYBLE_STATE_ADVERTISING\000"
+ 1530      455F5354 
+ 1530      4154455F 
+ 1530      41445645 
+ 1530      52544953 
+ 1531              	.LASF6:
+ 1532 033f 6C6F6E67 		.ascii	"long long int\000"
+ 1532      206C6F6E 
+ 1532      6720696E 
+ 1532      7400
+ 1533              	.LASF0:
+ 1534 034d 7369676E 		.ascii	"signed char\000"
+ 1534      65642063 
+ 1534      68617200 
+ 1535              	.LASF28:
+ 1536 0359 4359424C 		.ascii	"CYBLE_EVT_STACK_ON\000"
+ 1536      455F4556 
+ 1536      545F5354 
+ 1536      41434B5F 
+ 1536      4F4E00
+ 1537              	.LASF113:
+ 1538 036c 4359424C 		.ascii	"CYBLE_ERROR_DEVICE_ALREADY_EXISTS\000"
+ 1538      455F4552 
+ 1538      524F525F 
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 35
+
+
+ 1538      44455649 
+ 1538      43455F41 
+ 1539              	.LASF100:
+ 1540 038e 4359424C 		.ascii	"CYBLE_ERROR_NO_DEVICE_ENTITY\000"
+ 1540      455F4552 
+ 1540      524F525F 
+ 1540      4E4F5F44 
+ 1540      45564943 
+ 1541              	.LASF35:
+ 1542 03ab 4359424C 		.ascii	"CYBLE_EVT_GAP_AUTH_REQ\000"
+ 1542      455F4556 
+ 1542      545F4741 
+ 1542      505F4155 
+ 1542      54485F52 
+ 1543              	.LASF63:
+ 1544 03c2 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_RSP\000"
+ 1544      455F4556 
+ 1544      545F4741 
+ 1544      5454435F 
+ 1544      52454144 
+ 1545              	.LASF124:
+ 1546 03db 4359424C 		.ascii	"CYBLE_ERROR_INVALID_STATE\000"
+ 1546      455F4552 
+ 1546      524F525F 
+ 1546      494E5641 
+ 1546      4C49445F 
+ 1547              	.LASF25:
+ 1548 03f5 424C455F 		.ascii	"BLE_CONNECTION_PARAM_STATE\000"
+ 1548      434F4E4E 
+ 1548      45435449 
+ 1548      4F4E5F50 
+ 1548      4152414D 
+ 1549              	.LASF68:
+ 1550 0410 4359424C 		.ascii	"CYBLE_EVT_GATTS_WRITE_CMD_REQ\000"
+ 1550      455F4556 
+ 1550      545F4741 
+ 1550      5454535F 
+ 1550      57524954 
+ 1551              	.LASF159:
+ 1552 042e 424C455F 		.ascii	"BLE_Run\000"
+ 1552      52756E00 
+ 1553              	.LASF143:
+ 1554 0436 4359424C 		.ascii	"CYBLE_STATE_DISCONNECTED\000"
+ 1554      455F5354 
+ 1554      4154455F 
+ 1554      44495343 
+ 1554      4F4E4E45 
+ 1555              	.LASF40:
+ 1556 044f 4359424C 		.ascii	"CYBLE_EVT_GAPP_ADVERTISEMENT_START_STOP\000"
+ 1556      455F4556 
+ 1556      545F4741 
+ 1556      50505F41 
+ 1556      44564552 
+ 1557              	.LASF111:
+ 1558 0477 4359424C 		.ascii	"CYBLE_ERROR_L2CAP_PSM_NOT_IN_RANGE\000"
+ 1558      455F4552 
+ 1558      524F525F 
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 36
+
+
+ 1558      4C324341 
+ 1558      505F5053 
+ 1559              	.LASF9:
+ 1560 049a 75696E74 		.ascii	"uint8\000"
+ 1560      3800
+ 1561              	.LASF71:
+ 1562 04a0 4359424C 		.ascii	"CYBLE_EVT_GATTC_EXEC_WRITE_RSP\000"
+ 1562      455F4556 
+ 1562      545F4741 
+ 1562      5454435F 
+ 1562      45584543 
+ 1563              	.LASF13:
+ 1564 04bf 646F7562 		.ascii	"double\000"
+ 1564      6C6500
+ 1565              	.LASF84:
+ 1566 04c6 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_DISCONN_IND\000"
+ 1566      455F4556 
+ 1566      545F4C32 
+ 1566      4341505F 
+ 1566      43424643 
+ 1567              	.LASF94:
+ 1568 04e7 4359424C 		.ascii	"CYBLE_ERROR_INVALID_PARAMETER\000"
+ 1568      455F4552 
+ 1568      524F525F 
+ 1568      494E5641 
+ 1568      4C49445F 
+ 1569              	.LASF11:
+ 1570 0505 75696E74 		.ascii	"uint32\000"
+ 1570      333200
+ 1571              	.LASF24:
+ 1572 050c 434F4E4E 		.ascii	"CONNECTION_PARAMETER_FAILURE_STATE\000"
+ 1572      45435449 
+ 1572      4F4E5F50 
+ 1572      4152414D 
+ 1572      45544552 
+ 1573              	.LASF92:
+ 1574 052f 4359424C 		.ascii	"CYBLE_EVT_MAX\000"
+ 1574      455F4556 
+ 1574      545F4D41 
+ 1574      5800
+ 1575              	.LASF93:
+ 1576 053d 4359424C 		.ascii	"CYBLE_ERROR_OK\000"
+ 1576      455F4552 
+ 1576      524F525F 
+ 1576      4F4B00
+ 1577              	.LASF54:
+ 1578 054c 4359424C 		.ascii	"CYBLE_EVT_GATTC_ERROR_RSP\000"
+ 1578      455F4556 
+ 1578      545F4741 
+ 1578      5454435F 
+ 1578      4552524F 
+ 1579              	.LASF79:
+ 1580 0566 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CONN_PARAM_UPDATE_REQ\000"
+ 1580      455F4556 
+ 1580      545F4C32 
+ 1580      4341505F 
+ 1580      434F4E4E 
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 37
+
+
+ 1581              	.LASF89:
+ 1582 058c 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_DATA_WRITE_IND\000"
+ 1582      455F4556 
+ 1582      545F4C32 
+ 1582      4341505F 
+ 1582      43424643 
+ 1583              	.LASF156:
+ 1584 05b0 433A5C55 		.ascii	"C:\\Users\\Gaurav\\Documents\\PSoC Creator\\BLE MID"
+ 1584      73657273 
+ 1584      5C476175 
+ 1584      7261765C 
+ 1584      446F6375 
+ 1585 05de 495C424C 		.ascii	"I\\BLE_MIDI_iOS.cydsn\000"
+ 1585      455F4D49 
+ 1585      44495F69 
+ 1585      4F532E63 
+ 1585      7964736E 
+ 1586              	.LASF7:
+ 1587 05f3 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 1587      206C6F6E 
+ 1587      6720756E 
+ 1587      7369676E 
+ 1587      65642069 
+ 1588              	.LASF76:
+ 1589 060a 4359424C 		.ascii	"CYBLE_EVT_GATTC_STOP_CMD_COMPLETE\000"
+ 1589      455F4556 
+ 1589      545F4741 
+ 1589      5454435F 
+ 1589      53544F50 
+ 1590              	.LASF19:
+ 1591 062c 434F4E4E 		.ascii	"CONNECTION_PARAMETER_IDLE_STATE\000"
+ 1591      45435449 
+ 1591      4F4E5F50 
+ 1591      4152414D 
+ 1591      45544552 
+ 1592              	.LASF98:
+ 1593 064c 4359424C 		.ascii	"CYBLE_ERROR_OOB_NOT_AVAILABLE\000"
+ 1593      455F4552 
+ 1593      524F525F 
+ 1593      4F4F425F 
+ 1593      4E4F545F 
+ 1594              	.LASF91:
+ 1595 066a 4359424C 		.ascii	"CYBLE_EVT_LE_PING_AUTH_TIMEOUT\000"
+ 1595      455F4556 
+ 1595      545F4C45 
+ 1595      5F50494E 
+ 1595      475F4155 
+ 1596              	.LASF107:
+ 1597 0689 4359424C 		.ascii	"CYBLE_ERROR_L2CAP_PSM_ALREADY_REGISTERED\000"
+ 1597      455F4552 
+ 1597      524F525F 
+ 1597      4C324341 
+ 1597      505F5053 
+ 1598              	.LASF5:
+ 1599 06b2 6C6F6E67 		.ascii	"long unsigned int\000"
+ 1599      20756E73 
+ 1599      69676E65 
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 38
+
+
+ 1599      6420696E 
+ 1599      7400
+ 1600              	.LASF135:
+ 1601 06c4 4359424C 		.ascii	"CYBLE_GAP_CONN_UPDATE_PARAM_T\000"
+ 1601      455F4741 
+ 1601      505F434F 
+ 1601      4E4E5F55 
+ 1601      50444154 
+ 1602              	.LASF130:
+ 1603 06e2 4359424C 		.ascii	"CYBLE_BLESS_INVALID\000"
+ 1603      455F424C 
+ 1603      4553535F 
+ 1603      494E5641 
+ 1603      4C494400 
+ 1604              	.LASF58:
+ 1605 06f6 4359424C 		.ascii	"CYBLE_EVT_GATTC_XCHNG_MTU_RSP\000"
+ 1605      455F4556 
+ 1605      545F4741 
+ 1605      5454435F 
+ 1605      5843484E 
+ 1606              	.LASF75:
+ 1607 0714 4359424C 		.ascii	"CYBLE_EVT_GATTS_DATA_SIGNED_CMD_REQ\000"
+ 1607      455F4556 
+ 1607      545F4741 
+ 1607      5454535F 
+ 1607      44415441 
+ 1608              	.LASF78:
+ 1609 0738 4359424C 		.ascii	"CYBLE_EVT_GATTC_LONG_PROCEDURE_END\000"
+ 1609      455F4556 
+ 1609      545F4741 
+ 1609      5454435F 
+ 1609      4C4F4E47 
+ 1610              	.LASF134:
+ 1611 075b 73757065 		.ascii	"supervisionTO\000"
+ 1611      72766973 
+ 1611      696F6E54 
+ 1611      4F00
+ 1612              	.LASF110:
+ 1613 0769 4359424C 		.ascii	"CYBLE_ERROR_L2CAP_CHANNEL_NOT_FOUND\000"
+ 1613      455F4552 
+ 1613      524F525F 
+ 1613      4C324341 
+ 1613      505F4348 
+ 1614              	.LASF145:
+ 1615 078d 6576656E 		.ascii	"event\000"
+ 1615      7400
+ 1616              	.LASF121:
+ 1617 0793 4359424C 		.ascii	"CYBLE_ERROR_NTF_DISABLED\000"
+ 1617      455F4552 
+ 1617      524F525F 
+ 1617      4E54465F 
+ 1617      44495341 
+ 1618              	.LASF27:
+ 1619 07ac 4359424C 		.ascii	"CYBLE_EVT_HOST_INVALID\000"
+ 1619      455F4556 
+ 1619      545F484F 
+ 1619      53545F49 
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 39
+
+
+ 1619      4E56414C 
+ 1620              	.LASF61:
+ 1621 07c3 4359424C 		.ascii	"CYBLE_EVT_GATTC_FIND_INFO_RSP\000"
+ 1621      455F4556 
+ 1621      545F4741 
+ 1621      5454435F 
+ 1621      46494E44 
+ 1622              	.LASF33:
+ 1623 07e1 4359424C 		.ascii	"CYBLE_EVT_MEMORY_REQUEST\000"
+ 1623      455F4556 
+ 1623      545F4D45 
+ 1623      4D4F5259 
+ 1623      5F524551 
+ 1624              	.LASF157:
+ 1625 07fa 424C455F 		.ascii	"BLE_Start\000"
+ 1625      53746172 
+ 1625      7400
+ 1626              	.LASF22:
+ 1627 0804 434F4E4E 		.ascii	"CONNECTION_PARAMETER_ACCEPTED_STATE\000"
+ 1627      45435449 
+ 1627      4F4E5F50 
+ 1627      4152414D 
+ 1627      45544552 
+ 1628              	.LASF36:
+ 1629 0828 4359424C 		.ascii	"CYBLE_EVT_GAP_PASSKEY_ENTRY_REQUEST\000"
+ 1629      455F4556 
+ 1629      545F4741 
+ 1629      505F5041 
+ 1629      53534B45 
+ 1630              	.LASF41:
+ 1631 084c 4359424C 		.ascii	"CYBLE_EVT_GAP_DEVICE_CONNECTED\000"
+ 1631      455F4556 
+ 1631      545F4741 
+ 1631      505F4445 
+ 1631      56494345 
+ 1632              	.LASF66:
+ 1633 086b 4359424C 		.ascii	"CYBLE_EVT_GATTS_WRITE_REQ\000"
+ 1633      455F4556 
+ 1633      545F4741 
+ 1633      5454535F 
+ 1633      57524954 
+ 1634              	.LASF152:
+ 1635 0885 6379426C 		.ascii	"cyBle_state\000"
+ 1635      655F7374 
+ 1635      61746500 
+ 1636              	.LASF37:
+ 1637 0891 4359424C 		.ascii	"CYBLE_EVT_GAP_PASSKEY_DISPLAY_REQUEST\000"
+ 1637      455F4556 
+ 1637      545F4741 
+ 1637      505F5041 
+ 1637      53534B45 
+ 1638              	.LASF55:
+ 1639 08b7 4359424C 		.ascii	"CYBLE_EVT_GATT_CONNECT_IND\000"
+ 1639      455F4556 
+ 1639      545F4741 
+ 1639      54545F43 
+ 1639      4F4E4E45 
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 40
+
+
+ 1640              	.LASF137:
+ 1641 08d2 61747449 		.ascii	"attId\000"
+ 1641      6400
+ 1642              	.LASF81:
+ 1643 08d8 4359424C 		.ascii	"CYBLE_EVT_L2CAP_COMMAND_REJ\000"
+ 1643      455F4556 
+ 1643      545F4C32 
+ 1643      4341505F 
+ 1643      434F4D4D 
+ 1644              	.LASF34:
+ 1645 08f4 4359424C 		.ascii	"CYBLE_EVT_GAPC_SCAN_PROGRESS_RESULT\000"
+ 1645      455F4556 
+ 1645      545F4741 
+ 1645      50435F53 
+ 1645      43414E5F 
+ 1646              	.LASF155:
+ 1647 0918 2E5C424C 		.ascii	".\\BLE_Interface.c\000"
+ 1647      455F496E 
+ 1647      74657266 
+ 1647      6163652E 
+ 1647      6300
+ 1648              	.LASF133:
+ 1649 092a 636F6E6E 		.ascii	"connLatency\000"
+ 1649      4C617465 
+ 1649      6E637900 
+ 1650              	.LASF120:
+ 1651 0936 4359424C 		.ascii	"CYBLE_ERROR_MAX\000"
+ 1651      455F4552 
+ 1651      524F525F 
+ 1651      4D415800 
+ 1652              	.LASF118:
+ 1653 0946 4359424C 		.ascii	"CYBLE_ERROR_FLASH_WRITE\000"
+ 1653      455F4552 
+ 1653      524F525F 
+ 1653      464C4153 
+ 1653      485F5752 
+ 1654              	.LASF60:
+ 1655 095e 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_BY_TYPE_RSP\000"
+ 1655      455F4556 
+ 1655      545F4741 
+ 1655      5454435F 
+ 1655      52454144 
+ 1656              	.LASF26:
+ 1657 097f 73697A65 		.ascii	"sizetype\000"
+ 1657      74797065 
+ 1657      00
+ 1658              	.LASF140:
+ 1659 0988 4359424C 		.ascii	"CYBLE_STATE_INITIALIZING\000"
+ 1659      455F5354 
+ 1659      4154455F 
+ 1659      494E4954 
+ 1659      49414C49 
+ 1660              	.LASF39:
+ 1661 09a1 4359424C 		.ascii	"CYBLE_EVT_GAP_AUTH_FAILED\000"
+ 1661      455F4556 
+ 1661      545F4741 
+ 1661      505F4155 
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 41
+
+
+ 1661      54485F46 
+ 1662              	.LASF153:
+ 1663 09bb 6379426C 		.ascii	"cyBle_connHandle\000"
+ 1663      655F636F 
+ 1663      6E6E4861 
+ 1663      6E646C65 
+ 1663      00
+ 1664              	.LASF67:
+ 1665 09cc 4359424C 		.ascii	"CYBLE_EVT_GATTC_WRITE_RSP\000"
+ 1665      455F4556 
+ 1665      545F4741 
+ 1665      5454435F 
+ 1665      57524954 
+ 1666              	.LASF52:
+ 1667 09e6 4359424C 		.ascii	"CYBLE_EVT_GAPC_DIRECT_ADV_REPORT\000"
+ 1667      455F4556 
+ 1667      545F4741 
+ 1667      50435F44 
+ 1667      49524543 
+ 1668              	.LASF151:
+ 1669 0a07 6D696469 		.ascii	"midiConnectionParam\000"
+ 1669      436F6E6E 
+ 1669      65637469 
+ 1669      6F6E5061 
+ 1669      72616D00 
+ 1670              	.LASF50:
+ 1671 0a1b 4359424C 		.ascii	"CYBLE_EVT_GAP_DATA_LENGTH_CHANGE\000"
+ 1671      455F4556 
+ 1671      545F4741 
+ 1671      505F4441 
+ 1671      54415F4C 
+ 1672              	.LASF38:
+ 1673 0a3c 4359424C 		.ascii	"CYBLE_EVT_GAP_AUTH_COMPLETE\000"
+ 1673      455F4556 
+ 1673      545F4741 
+ 1673      505F4155 
+ 1673      54485F43 
+ 1674              	.LASF148:
+ 1675 0a58 61706952 		.ascii	"apiResult\000"
+ 1675      6573756C 
+ 1675      7400
+ 1676              	.LASF125:
+ 1677 0a62 4359424C 		.ascii	"CYBLE_API_RESULT_T\000"
+ 1677      455F4150 
+ 1677      495F5245 
+ 1677      53554C54 
+ 1677      5F5400
+ 1678              	.LASF72:
+ 1679 0a75 4359424C 		.ascii	"CYBLE_EVT_GATTC_HANDLE_VALUE_NTF\000"
+ 1679      455F4556 
+ 1679      545F4741 
+ 1679      5454435F 
+ 1679      48414E44 
+ 1680              	.LASF122:
+ 1681 0a96 4359424C 		.ascii	"CYBLE_ERROR_IND_DISABLED\000"
+ 1681      455F4552 
+ 1681      524F525F 
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 42
+
+
+ 1681      494E445F 
+ 1681      44495341 
+ 1682              	.LASF83:
+ 1683 0aaf 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_CONN_CNF\000"
+ 1683      455F4556 
+ 1683      545F4C32 
+ 1683      4341505F 
+ 1683      43424643 
+ 1684              	.LASF131:
+ 1685 0acd 636F6E6E 		.ascii	"connIntvMin\000"
+ 1685      496E7476 
+ 1685      4D696E00 
+ 1686              	.LASF12:
+ 1687 0ad9 666C6F61 		.ascii	"float\000"
+ 1687      7400
+ 1688              	.LASF74:
+ 1689 0adf 4359424C 		.ascii	"CYBLE_EVT_GATTS_HANDLE_VALUE_CNF\000"
+ 1689      455F4556 
+ 1689      545F4741 
+ 1689      5454535F 
+ 1689      48414E44 
+ 1690              	.LASF20:
+ 1691 0b00 434F4E4E 		.ascii	"CONNECTION_PARAMETER_UPDATE_REQUIRED_STATE\000"
+ 1691      45435449 
+ 1691      4F4E5F50 
+ 1691      4152414D 
+ 1691      45544552 
+ 1692              	.LASF16:
+ 1693 0b2b 4D454449 		.ascii	"MEDIUM_LATENCY_CONNECTION_PARAMETER_INDEX\000"
+ 1693      554D5F4C 
+ 1693      4154454E 
+ 1693      43595F43 
+ 1693      4F4E4E45 
+ 1694              	.LASF103:
+ 1695 0b55 4359424C 		.ascii	"CYBLE_ERROR_TX_POWER_READ\000"
+ 1695      455F4552 
+ 1695      524F525F 
+ 1695      54585F50 
+ 1695      4F574552 
+ 1696              	.LASF123:
+ 1697 0b6f 4359424C 		.ascii	"CYBLE_ERROR_CHAR_IS_NOT_DISCOVERED\000"
+ 1697      455F4552 
+ 1697      524F525F 
+ 1697      43484152 
+ 1697      5F49535F 
+ 1698              	.LASF1:
+ 1699 0b92 756E7369 		.ascii	"unsigned char\000"
+ 1699      676E6564 
+ 1699      20636861 
+ 1699      7200
+ 1700              	.LASF10:
+ 1701 0ba0 75696E74 		.ascii	"uint16\000"
+ 1701      313600
+ 1702              	.LASF17:
+ 1703 0ba7 544F5441 		.ascii	"TOTAL_NUMBER_OF_CONNECTION_PARAMETERS\000"
+ 1703      4C5F4E55 
+ 1703      4D424552 
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 43
+
+
+ 1703      5F4F465F 
+ 1703      434F4E4E 
+ 1704              	.LASF2:
+ 1705 0bcd 73686F72 		.ascii	"short int\000"
+ 1705      7420696E 
+ 1705      7400
+ 1706              	.LASF73:
+ 1707 0bd7 4359424C 		.ascii	"CYBLE_EVT_GATTC_HANDLE_VALUE_IND\000"
+ 1707      455F4556 
+ 1707      545F4741 
+ 1707      5454435F 
+ 1707      48414E44 
+ 1708              	.LASF99:
+ 1709 0bf8 4359424C 		.ascii	"CYBLE_ERROR_NO_CONNECTION\000"
+ 1709      455F4552 
+ 1709      524F525F 
+ 1709      4E4F5F43 
+ 1709      4F4E4E45 
+ 1710              	.LASF132:
+ 1711 0c12 636F6E6E 		.ascii	"connIntvMax\000"
+ 1711      496E7476 
+ 1711      4D617800 
+ 1712              	.LASF69:
+ 1713 0c1e 4359424C 		.ascii	"CYBLE_EVT_GATTS_PREP_WRITE_REQ\000"
+ 1713      455F4556 
+ 1713      545F4741 
+ 1713      5454535F 
+ 1713      50524550 
+ 1714              	.LASF149:
+ 1715 0c3d 636F6E52 		.ascii	"conResult\000"
+ 1715      6573756C 
+ 1715      7400
+ 1716              	.LASF101:
+ 1717 0c47 4359424C 		.ascii	"CYBLE_ERROR_REPEATED_ATTEMPTS\000"
+ 1717      455F4552 
+ 1717      524F525F 
+ 1717      52455045 
+ 1717      41544544 
+ 1718              	.LASF53:
+ 1719 0c65 4359424C 		.ascii	"CYBLE_EVT_GAP_SMP_NEGOTIATED_AUTH_INFO\000"
+ 1719      455F4556 
+ 1719      545F4741 
+ 1719      505F534D 
+ 1719      505F4E45 
+ 1720              	.LASF14:
+ 1721 0c8c 63686172 		.ascii	"char\000"
+ 1721      00
+ 1722              	.LASF127:
+ 1723 0c91 4359424C 		.ascii	"CYBLE_BLESS_SLEEP\000"
+ 1723      455F424C 
+ 1723      4553535F 
+ 1723      534C4545 
+ 1723      5000
+ 1724              	.LASF104:
+ 1725 0ca3 4359424C 		.ascii	"CYBLE_ERROR_BT_ON_NOT_COMPLETED\000"
+ 1725      455F4552 
+ 1725      524F525F 
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 44
+
+
+ 1725      42545F4F 
+ 1725      4E5F4E4F 
+ 1726              	.LASF42:
+ 1727 0cc3 4359424C 		.ascii	"CYBLE_EVT_GAP_DEVICE_DISCONNECTED\000"
+ 1727      455F4556 
+ 1727      545F4741 
+ 1727      505F4445 
+ 1727      56494345 
+ 1728              	.LASF8:
+ 1729 0ce5 756E7369 		.ascii	"unsigned int\000"
+ 1729      676E6564 
+ 1729      20696E74 
+ 1729      00
+ 1730              	.LASF77:
+ 1731 0cf2 4359424C 		.ascii	"CYBLE_EVT_GATTS_READ_CHAR_VAL_ACCESS_REQ\000"
+ 1731      455F4556 
+ 1731      545F4741 
+ 1731      5454535F 
+ 1731      52454144 
+ 1732              	.LASF48:
+ 1733 0d1b 4359424C 		.ascii	"CYBLE_EVT_GAP_KEYPRESS_NOTIFICATION\000"
+ 1733      455F4556 
+ 1733      545F4741 
+ 1733      505F4B45 
+ 1733      59505245 
+ 1734              	.LASF88:
+ 1735 0d3f 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_TX_CREDIT_IND\000"
+ 1735      455F4556 
+ 1735      545F4C32 
+ 1735      4341505F 
+ 1735      43424643 
+ 1736              	.LASF114:
+ 1737 0d62 4359424C 		.ascii	"CYBLE_ERROR_FLASH_WRITE_NOT_PERMITED\000"
+ 1737      455F4552 
+ 1737      524F525F 
+ 1737      464C4153 
+ 1737      485F5752 
+ 1738              	.LASF109:
+ 1739 0d87 4359424C 		.ascii	"CYBLE_ERROR_L2CAP_CONNECTION_ENTITY_NOT_FOUND\000"
+ 1739      455F4552 
+ 1739      524F525F 
+ 1739      4C324341 
+ 1739      505F434F 
+ 1740              	.LASF30:
+ 1741 0db5 4359424C 		.ascii	"CYBLE_EVT_HARDWARE_ERROR\000"
+ 1741      455F4556 
+ 1741      545F4841 
+ 1741      52445741 
+ 1741      52455F45 
+ 1742              	.LASF3:
+ 1743 0dce 73686F72 		.ascii	"short unsigned int\000"
+ 1743      7420756E 
+ 1743      7369676E 
+ 1743      65642069 
+ 1743      6E7400
+ 1744              	.LASF158:
+ 1745 0de1 424C455F 		.ascii	"BLE_StateInit\000"
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 45
+
+
+ 1745      53746174 
+ 1745      65496E69 
+ 1745      7400
+ 1746              	.LASF95:
+ 1747 0def 4359424C 		.ascii	"CYBLE_ERROR_INVALID_OPERATION\000"
+ 1747      455F4552 
+ 1747      524F525F 
+ 1747      494E5641 
+ 1747      4C49445F 
+ 1748              	.LASF147:
+ 1749 0e0d 636F6E6E 		.ascii	"connectionParamIndex\000"
+ 1749      65637469 
+ 1749      6F6E5061 
+ 1749      72616D49 
+ 1749      6E646578 
+ 1750              	.LASF57:
+ 1751 0e22 4359424C 		.ascii	"CYBLE_EVT_GATTS_XCNHG_MTU_REQ\000"
+ 1751      455F4556 
+ 1751      545F4741 
+ 1751      5454535F 
+ 1751      58434E48 
+ 1752              	.LASF146:
+ 1753 0e40 6576656E 		.ascii	"eventParam\000"
+ 1753      74506172 
+ 1753      616D00
+ 1754              	.LASF129:
+ 1755 0e4b 4359424C 		.ascii	"CYBLE_BLESS_HIBERNATE\000"
+ 1755      455F424C 
+ 1755      4553535F 
+ 1755      48494245 
+ 1755      524E4154 
+ 1756              	.LASF144:
+ 1757 0e61 4359424C 		.ascii	"CYBLE_STATE_T\000"
+ 1757      455F5354 
+ 1757      4154455F 
+ 1757      5400
+ 1758              	.LASF64:
+ 1759 0e6f 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_BLOB_RSP\000"
+ 1759      455F4556 
+ 1759      545F4741 
+ 1759      5454435F 
+ 1759      52454144 
+ 1760              	.LASF119:
+ 1761 0e8d 4359424C 		.ascii	"CYBLE_ERROR_CONTROLLER_BUSY\000"
+ 1761      455F4552 
+ 1761      524F525F 
+ 1761      434F4E54 
+ 1761      524F4C4C 
+ 1762              	.LASF160:
+ 1763 0ea9 53746163 		.ascii	"StackEventHandler\000"
+ 1763      6B457665 
+ 1763      6E744861 
+ 1763      6E646C65 
+ 1763      7200
+ 1764              	.LASF18:
+ 1765 0ebb 424C455F 		.ascii	"BLE_CONNECTION_PARAM_INDEX\000"
+ 1765      434F4E4E 
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 46
+
+
+ 1765      45435449 
+ 1765      4F4E5F50 
+ 1765      4152414D 
+ 1766              	.LASF115:
+ 1767 0ed6 4359424C 		.ascii	"CYBLE_ERROR_MIC_AUTH_FAILED\000"
+ 1767      455F4552 
+ 1767      524F525F 
+ 1767      4D49435F 
+ 1767      41555448 
+ 1768              	.LASF108:
+ 1769 0ef2 4359424C 		.ascii	"CYBLE_ERROR_L2CAP_PSM_NOT_REGISTERED\000"
+ 1769      455F4552 
+ 1769      524F525F 
+ 1769      4C324341 
+ 1769      505F5053 
+ 1770              	.LASF141:
+ 1771 0f17 4359424C 		.ascii	"CYBLE_STATE_CONNECTED\000"
+ 1771      455F5354 
+ 1771      4154455F 
+ 1771      434F4E4E 
+ 1771      45435445 
+ 1772              	.LASF21:
+ 1773 0f2d 434F4E4E 		.ascii	"CONNECTION_PARAMETER_SENT_STATE\000"
+ 1773      45435449 
+ 1773      4F4E5F50 
+ 1773      4152414D 
+ 1773      45544552 
+ 1774              	.LASF128:
+ 1775 0f4d 4359424C 		.ascii	"CYBLE_BLESS_DEEPSLEEP\000"
+ 1775      455F424C 
+ 1775      4553535F 
+ 1775      44454550 
+ 1775      534C4545 
+ 1776              	.LASF161:
+ 1777 0f63 55706461 		.ascii	"UpdateMidiInterfaceConnParam\000"
+ 1777      74654D69 
+ 1777      6469496E 
+ 1777      74657266 
+ 1777      61636543 
+ 1778              	.LASF154:
+ 1779 0f80 474E5520 		.ascii	"GNU C 4.9.3 20150303 (release) [ARM/embedded-4_9-br"
+ 1779      4320342E 
+ 1779      392E3320 
+ 1779      32303135 
+ 1779      30333033 
+ 1780 0fb3 616E6368 		.ascii	"anch revision 221220] -mcpu=cortex-m0 -mthumb -g -O"
+ 1780      20726576 
+ 1780      6973696F 
+ 1780      6E203232 
+ 1780      31323230 
+ 1781 0fe6 30202D66 		.ascii	"0 -ffunction-sections -ffat-lto-objects\000"
+ 1781      66756E63 
+ 1781      74696F6E 
+ 1781      2D736563 
+ 1781      74696F6E 
+ 1782              	.LASF62:
+ 1783 100e 4359424C 		.ascii	"CYBLE_EVT_GATTC_FIND_BY_TYPE_VALUE_RSP\000"
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 47
+
+
+ 1783      455F4556 
+ 1783      545F4741 
+ 1783      5454435F 
+ 1783      46494E44 
+ 1784              	.LASF102:
+ 1785 1035 4359424C 		.ascii	"CYBLE_ERROR_GAP_ROLE\000"
+ 1785      455F4552 
+ 1785      524F525F 
+ 1785      4741505F 
+ 1785      524F4C45 
+ 1786              	.LASF46:
+ 1787 104a 4359424C 		.ascii	"CYBLE_EVT_GAP_KEYINFO_EXCHNGE_CMPLT\000"
+ 1787      455F4556 
+ 1787      545F4741 
+ 1787      505F4B45 
+ 1787      59494E46 
+ 1788              	.LASF136:
+ 1789 106e 62644861 		.ascii	"bdHandle\000"
+ 1789      6E646C65 
+ 1789      00
+ 1790              	.LASF150:
+ 1791 1077 636F6E6E 		.ascii	"connectionParamState\000"
+ 1791      65637469 
+ 1791      6F6E5061 
+ 1791      72616D53 
+ 1791      74617465 
+ 1792              	.LASF15:
+ 1793 108c 4C4F575F 		.ascii	"LOW_LATENCY_CONNECTION_PARAMETER_INDEX\000"
+ 1793      4C415445 
+ 1793      4E43595F 
+ 1793      434F4E4E 
+ 1793      45435449 
+ 1794              	.LASF80:
+ 1795 10b3 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CONN_PARAM_UPDATE_RSP\000"
+ 1795      455F4556 
+ 1795      545F4C32 
+ 1795      4341505F 
+ 1795      434F4E4E 
+ 1796              	.LASF126:
+ 1797 10d9 4359424C 		.ascii	"CYBLE_BLESS_ACTIVE\000"
+ 1797      455F424C 
+ 1797      4553535F 
+ 1797      41435449 
+ 1797      564500
+ 1798              	.LASF51:
+ 1799 10ec 4359424C 		.ascii	"CYBLE_EVT_GAP_ENHANCE_CONN_COMPLETE\000"
+ 1799      455F4556 
+ 1799      545F4741 
+ 1799      505F454E 
+ 1799      48414E43 
+ 1800              	.LASF56:
+ 1801 1110 4359424C 		.ascii	"CYBLE_EVT_GATT_DISCONNECT_IND\000"
+ 1801      455F4556 
+ 1801      545F4741 
+ 1801      54545F44 
+ 1801      4953434F 
+ 1802              	.LASF112:
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccfNPcVj.s 			page 48
+
+
+ 1803 112e 4359424C 		.ascii	"CYBLE_ERROR_GATT_DB_INVALID_ATTR_HANDLE\000"
+ 1803      455F4552 
+ 1803      524F525F 
+ 1803      47415454 
+ 1803      5F44425F 
+ 1804              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 4.9.3 20150303 (release) [ARM/embedded-4_9-br

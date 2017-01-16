@@ -1,0 +1,7 @@
+C:\Users\Gaurav\Documents\PSoC Creator\BLE MIDI\BLE_MIDI_iOS.cydsn\BLE_MIDI_iOS.cyprj|2af72531-32ec-4a6f-83c4-805e0399bc1e
+C:\Program Files (x86)\Cypress\PSoC Creator\3.3\PSoC Creator\psoc\content\default\CyAnnotationLibrary\CyAnnotationLibrary.cylib\CyAnnotationLibrary.cyprj|9fffbeaa-53ca-49a2-a751-4ca41bac803c
+C:\Program Files (x86)\Cypress\PSoC Creator\3.3\PSoC Creator\psoc\content\cycomponentlibraryupdates\CyComponentLibraryUpdates.cylib\CyComponentLibraryUpdates.cyprj|dd2b0f3c-8f93-43f4-878a-d1001090caa6
+C:\Program Files (x86)\Cypress\PSoC Creator\3.3\PSoC Creator\psoc\content\cycomponentlibrary\CyComponentLibrary.cylib\CyComponentLibrary.cyprj|7b2de57f-59af-45c3-b693-26a17af5d315
+C:\Program Files (x86)\Cypress\PSoC Creator\3.3\PSoC Creator\psoc\content\cyprimitives\CyPrimitives.cylib\CyPrimitives.cyprj|c1c03c63-3c4b-4c5e-a6c9-77331e4874bb
+C:\Program Files (x86)\Cypress\PSoC Creator\3.3\PSoC Creator\dev\psoc4\PSoC4AnalogDevice\psoc4arch.cydsn\psoc4arch.cyprj|7963766b-2c78-41ae-924e-534aad16aa41
+C:\Program Files (x86)\Cypress\PSoC Creator\3.3\PSoC Creator\psoc\content\default\CyReferenceLibrary\CyReferenceLibrary.cylib\CyReferenceLibrary.cyprj|a8b56ac9-22a7-4458-975e-799002660d72

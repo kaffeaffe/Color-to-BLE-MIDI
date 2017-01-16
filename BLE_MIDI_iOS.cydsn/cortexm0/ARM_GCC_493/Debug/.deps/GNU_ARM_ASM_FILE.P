@@ -1,0 +1,8 @@
+C:/Users/Gaurav/Documents/PSoC\ Creator/BLE\ MIDI/BLE_MIDI_iOS.cydsn/CortexM0/ARM_GCC_493/Debug/CyBootAsmGnu.o : C:/Users/Gaurav/Documents/PSoC\ Creator/BLE\ MIDI/BLE_MIDI_iOS.cydsn/Generated_Source/PSoC4/CyBootAsmGnu.s C:/Users/Gaurav/Documents/PSoC\ Creator/BLE\ MIDI/BLE_MIDI_iOS.cydsn/Generated_Source/PSoC4/cydevicegnu_trm.inc C:/Users/Gaurav/Documents/PSoC\ Creator/BLE\ MIDI/BLE_MIDI_iOS.cydsn/Generated_Source/PSoC4/cyfittergnu.inc 
+
+C:/Users/Gaurav/Documents/PSoC\ Creator/BLE\ MIDI/BLE_MIDI_iOS.cydsn/Generated_Source/PSoC4/CyBootAsmGnu.s : 
+
+C:/Users/Gaurav/Documents/PSoC\ Creator/BLE\ MIDI/BLE_MIDI_iOS.cydsn/Generated_Source/PSoC4/cydevicegnu_trm.inc : 
+
+C:/Users/Gaurav/Documents/PSoC\ Creator/BLE\ MIDI/BLE_MIDI_iOS.cydsn/Generated_Source/PSoC4/cyfittergnu.inc : 
+

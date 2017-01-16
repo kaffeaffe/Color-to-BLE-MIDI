@@ -1,0 +1,2131 @@
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 1
+
+
+   1              		.cpu cortex-m0
+   2              		.fpu softvfp
+   3              		.eabi_attribute 20, 1
+   4              		.eabi_attribute 21, 1
+   5              		.eabi_attribute 23, 3
+   6              		.eabi_attribute 24, 1
+   7              		.eabi_attribute 25, 1
+   8              		.eabi_attribute 26, 1
+   9              		.eabi_attribute 30, 6
+  10              		.eabi_attribute 34, 0
+  11              		.eabi_attribute 18, 4
+  12              		.code	16
+  13              		.file	"UI.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.global	uiState
+  18              		.bss
+  19              		.type	uiState, %object
+  20              		.size	uiState, 1
+  21              	uiState:
+  22 0000 00       		.space	1
+  23              		.global	currentSliderPosition
+  24              		.data
+  25              		.align	1
+  26              		.type	currentSliderPosition, %object
+  27              		.size	currentSliderPosition, 2
+  28              	currentSliderPosition:
+  29 0000 FFFF     		.short	-1
+  30              		.global	currentButtonPosition
+  31              		.align	1
+  32              		.type	currentButtonPosition, %object
+  33              		.size	currentButtonPosition, 2
+  34              	currentButtonPosition:
+  35 0002 FFFF     		.short	-1
+  36              		.global	previousButtonPosition
+  37              		.align	1
+  38              		.type	previousButtonPosition, %object
+  39              		.size	previousButtonPosition, 2
+  40              	previousButtonPosition:
+  41 0004 FFFF     		.short	-1
+  42              		.global	previousSliderPosition
+  43              		.align	1
+  44              		.type	previousSliderPosition, %object
+  45              		.size	previousSliderPosition, 2
+  46              	previousSliderPosition:
+  47 0006 FFFF     		.short	-1
+  48              		.comm	uiOutputMailbox,5,4
+  49              		.section	.text.UI_Start,"ax",%progbits
+  50              		.align	2
+  51              		.global	UI_Start
+  52              		.code	16
+  53              		.thumb_func
+  54              		.type	UI_Start, %function
+  55              	UI_Start:
+  56              	.LFB37:
+  57              		.file 1 ".\\UI.c"
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 2
+
+
+   1:.\UI.c        **** /*******************************************************************************
+   2:.\UI.c        **** * File Name: UI.c
+   3:.\UI.c        **** *
+   4:.\UI.c        **** * Description:
+   5:.\UI.c        **** *  This file contains CapSense UI routines and implementation
+   6:.\UI.c        **** * 
+   7:.\UI.c        **** ********************************************************************************
+   8:.\UI.c        **** * Copyright 2015, Cypress Semiconductor Corporation.  All rights reserved.
+   9:.\UI.c        **** * You may use this file only in accordance with the license, terms, conditions,
+  10:.\UI.c        **** * disclaimers, and limitations in the end user license agreement accompanying
+  11:.\UI.c        **** * the software package with which this file was provided.
+  12:.\UI.c        **** *******************************************************************************/
+  13:.\UI.c        **** 
+  14:.\UI.c        **** #include <Configuration.h>
+  15:.\UI.c        **** #include <Project.h>
+  16:.\UI.c        **** #include <UI.h>
+  17:.\UI.c        **** 
+  18:.\UI.c        **** /***************************************
+  19:.\UI.c        **** *        Global and Static variables
+  20:.\UI.c        **** ***************************************/
+  21:.\UI.c        **** UI_STATE uiState = UI_IDLE_STATE;
+  22:.\UI.c        **** uint16 currentSliderPosition = NO_FINGER_ON_SLIDER;
+  23:.\UI.c        **** uint16 currentButtonPosition = NO_FINGER_ON_BUTTON;
+  24:.\UI.c        **** uint16 previousButtonPosition = NO_FINGER_ON_BUTTON;
+  25:.\UI.c        **** uint16 previousSliderPosition = NO_FINGER_ON_SLIDER;
+  26:.\UI.c        **** UI_OUTPUT_MAILBOX_T uiOutputMailbox;
+  27:.\UI.c        **** 
+  28:.\UI.c        **** 
+  29:.\UI.c        **** 
+  30:.\UI.c        **** 
+  31:.\UI.c        **** /*******************************************************************************
+  32:.\UI.c        **** * Function Name: UI_Start
+  33:.\UI.c        **** ********************************************************************************
+  34:.\UI.c        **** * Summary:
+  35:.\UI.c        **** *        Start the UI components and systems
+  36:.\UI.c        **** *
+  37:.\UI.c        **** * Parameters:
+  38:.\UI.c        **** *  void
+  39:.\UI.c        **** *
+  40:.\UI.c        **** * Return:
+  41:.\UI.c        **** *  void
+  42:.\UI.c        **** *
+  43:.\UI.c        **** *******************************************************************************/
+  44:.\UI.c        **** void UI_Start(void)
+  45:.\UI.c        **** {
+  58              		.loc 1 45 0
+  59              		.cfi_startproc
+  60 0000 80B5     		push	{r7, lr}
+  61              		.cfi_def_cfa_offset 8
+  62              		.cfi_offset 7, -8
+  63              		.cfi_offset 14, -4
+  64 0002 00AF     		add	r7, sp, #0
+  65              		.cfi_def_cfa_register 7
+  46:.\UI.c        ****     uint8 loopIndex;
+  47:.\UI.c        ****     
+  48:.\UI.c        **** #if CAPSENSE_ENABLED
+  49:.\UI.c        **** 	/*Initialize CapSense component and initialize baselines*/
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 3
+
+
+  50:.\UI.c        **** 	CapSense_Start();
+  51:.\UI.c        **** 	CapSense_InitializeAllBaselines();
+  52:.\UI.c        ****     
+  53:.\UI.c        ****     uiState = UI_IDLE_STATE;
+  54:.\UI.c        **** #endif
+  55:.\UI.c        **** 
+  56:.\UI.c        ****     /* I2C communication has started here */
+  57:.\UI.c        ****     I2C_1_Start();  
+  66              		.loc 1 57 0
+  67 0004 FFF7FEFF 		bl	I2C_1_Start
+  58:.\UI.c        ****     
+  59:.\UI.c        ****     uiOutputMailbox.outputMailIndex = 0;
+  68              		.loc 1 59 0
+  69 0008 034B     		ldr	r3, .L2
+  70 000a 0022     		mov	r2, #0
+  71 000c 1A70     		strb	r2, [r3]
+  60:.\UI.c        ****     
+  61:.\UI.c        ****     PWM_Start();
+  72              		.loc 1 61 0
+  73 000e FFF7FEFF 		bl	PWM_Start
+  62:.\UI.c        **** }
+  74              		.loc 1 62 0
+  75 0012 BD46     		mov	sp, r7
+  76              		@ sp needed
+  77 0014 80BD     		pop	{r7, pc}
+  78              	.L3:
+  79 0016 C046     		.align	2
+  80              	.L2:
+  81 0018 00000000 		.word	uiOutputMailbox
+  82              		.cfi_endproc
+  83              	.LFE37:
+  84              		.size	UI_Start, .-UI_Start
+  85              		.section	.text.UIInput_Run,"ax",%progbits
+  86              		.align	2
+  87              		.global	UIInput_Run
+  88              		.code	16
+  89              		.thumb_func
+  90              		.type	UIInput_Run, %function
+  91              	UIInput_Run:
+  92              	.LFB38:
+  63:.\UI.c        **** 
+  64:.\UI.c        **** /*******************************************************************************
+  65:.\UI.c        **** * Function Name: UIInput_Run
+  66:.\UI.c        **** ********************************************************************************
+  67:.\UI.c        **** * Summary:
+  68:.\UI.c        **** *        Runs the user interface input engine for the MIDI interface
+  69:.\UI.c        **** *
+  70:.\UI.c        **** * Parameters:
+  71:.\UI.c        **** *  void
+  72:.\UI.c        **** *
+  73:.\UI.c        **** * Return:
+  74:.\UI.c        **** *  UI input status change (if any)
+  75:.\UI.c        **** *
+  76:.\UI.c        **** *******************************************************************************/
+  77:.\UI.c        **** uint16 UIInput_Run(void)
+  78:.\UI.c        **** {
+  93              		.loc 1 78 0
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 4
+
+
+  94              		.cfi_startproc
+  95 0000 80B5     		push	{r7, lr}
+  96              		.cfi_def_cfa_offset 8
+  97              		.cfi_offset 7, -8
+  98              		.cfi_offset 14, -4
+  99 0002 82B0     		sub	sp, sp, #8
+ 100              		.cfi_def_cfa_offset 16
+ 101 0004 00AF     		add	r7, sp, #0
+ 102              		.cfi_def_cfa_register 7
+  79:.\UI.c        ****     uint16 uiChangeStatus = NO_UI_STATE_CHANGE;
+ 103              		.loc 1 79 0
+ 104 0006 BB1D     		add	r3, r7, #6
+ 105 0008 1222     		mov	r2, #18
+ 106 000a 5242     		neg	r2, r2
+ 107 000c 1A80     		strh	r2, [r3]
+  80:.\UI.c        ****     
+  81:.\UI.c        ****     if(IsUIEnabled())
+ 108              		.loc 1 81 0
+ 109 000e FFF7FEFF 		bl	IsMidiEnabled
+ 110 0012 031E     		sub	r3, r0, #0
+ 111 0014 37D0     		beq	.L5
+  82:.\UI.c        ****     {
+  83:.\UI.c        **** #if CAPSENSE_ENABLED
+  84:.\UI.c        ****         switch(uiState)
+  85:.\UI.c        ****         {
+  86:.\UI.c        ****             case UI_IDLE_STATE:
+  87:.\UI.c        **** #if CAPSENSE_SLIDER                
+  88:.\UI.c        ****                 CapSense_ScanWidget(CapSense_LINEARSLIDER0__LS); /* Initiate the sensor scan */
+  89:.\UI.c        **** #else
+  90:.\UI.c        ****                 CapSense_ScanEnabledWidgets(); /* Initiate the sensor scan */
+  91:.\UI.c        **** #endif 
+  92:.\UI.c        **** 
+  93:.\UI.c        ****                 uiState = UI_SCANNING_STATE;
+  94:.\UI.c        ****             break;
+  95:.\UI.c        ****             
+  96:.\UI.c        ****             case UI_SCANNING_STATE:
+  97:.\UI.c        ****                 if(CapSense_IsBusy() == 0)
+  98:.\UI.c        ****                 {
+  99:.\UI.c        ****                     CapSense_UpdateEnabledBaselines(); /* Keep the baseline updated with current pe
+ 100:.\UI.c        ****                     
+ 101:.\UI.c        **** #if CAPSENSE_SLIDER                     
+ 102:.\UI.c        ****                     currentSliderPosition = CapSense_GetCentroidPos(CapSense_LINEARSLIDER0__LS);
+ 103:.\UI.c        ****                     
+ 104:.\UI.c        ****                     if(currentSliderPosition != NO_FINGER_ON_SLIDER)
+ 105:.\UI.c        ****                     {
+ 106:.\UI.c        ****                         currentSliderPosition =  currentSliderPosition / CENTROID_DIVIDE_FACTOR;
+ 107:.\UI.c        ****                     }
+ 108:.\UI.c        ****                     
+ 109:.\UI.c        ****                     uiState = UI_RESULT_STATE;  
+ 110:.\UI.c        **** #else
+ 111:.\UI.c        ****                     if(CapSense_CheckIsWidgetActive(CapSense_NOTE1__BTN))
+ 112:.\UI.c        ****                     {
+ 113:.\UI.c        ****                         currentButtonPosition = NOTE1_VALUE;    
+ 114:.\UI.c        ****                     }
+ 115:.\UI.c        ****                     else if(CapSense_CheckIsWidgetActive(CapSense_NOTE2__BTN))
+ 116:.\UI.c        ****                     {
+ 117:.\UI.c        ****                         currentButtonPosition = NOTE2_VALUE;    
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 5
+
+
+ 118:.\UI.c        ****                     }
+ 119:.\UI.c        ****                     else if(CapSense_CheckIsWidgetActive(CapSense_NOTE3__BTN))
+ 120:.\UI.c        ****                     {
+ 121:.\UI.c        ****                         currentButtonPosition = NOTE3_VALUE;    
+ 122:.\UI.c        ****                     }
+ 123:.\UI.c        ****                     else if(CapSense_CheckIsWidgetActive(CapSense_NOTE4__BTN))
+ 124:.\UI.c        ****                     {
+ 125:.\UI.c        ****                         currentButtonPosition = NOTE4_VALUE;    
+ 126:.\UI.c        ****                     }
+ 127:.\UI.c        ****                     else if(CapSense_CheckIsWidgetActive(CapSense_NOTE5__BTN))
+ 128:.\UI.c        ****                     {
+ 129:.\UI.c        ****                         currentButtonPosition = NOTE5_VALUE;    
+ 130:.\UI.c        ****                     }
+ 131:.\UI.c        ****                     else
+ 132:.\UI.c        ****                     {
+ 133:.\UI.c        ****                         currentButtonPosition = NO_FINGER_ON_SLIDER; 
+ 134:.\UI.c        ****                     }
+ 135:.\UI.c        ****                     
+ 136:.\UI.c        ****                     uiState = UI_RESULT_STATE;
+ 137:.\UI.c        **** #endif    
+ 138:.\UI.c        ****                 }
+ 139:.\UI.c        ****             break;
+ 140:.\UI.c        ****             
+ 141:.\UI.c        ****             case UI_RESULT_STATE:
+ 142:.\UI.c        **** #if CAPSENSE_SLIDER                           
+ 143:.\UI.c        ****                 if(currentSliderPosition != previousSliderPosition)
+ 144:.\UI.c        ****                 {
+ 145:.\UI.c        ****                     uiChangeStatus = currentSliderPosition;
+ 146:.\UI.c        ****                     previousSliderPosition = currentSliderPosition;
+ 147:.\UI.c        ****                 }
+ 148:.\UI.c        **** #else
+ 149:.\UI.c        ****                 if(currentButtonPosition != previousButtonPosition)
+ 150:.\UI.c        ****                 {
+ 151:.\UI.c        ****                     uiChangeStatus = currentButtonPosition;
+ 152:.\UI.c        ****                     previousButtonPosition = currentButtonPosition;
+ 153:.\UI.c        ****                 }
+ 154:.\UI.c        **** #endif    
+ 155:.\UI.c        ****                 uiState = UI_IDLE_STATE;  
+ 156:.\UI.c        ****             break;
+ 157:.\UI.c        ****                 
+ 158:.\UI.c        ****             default:
+ 159:.\UI.c        ****             break;
+ 160:.\UI.c        ****         }
+ 161:.\UI.c        **** #endif 
+ 162:.\UI.c        **** 
+ 163:.\UI.c        ****         if (color == 'R')
+ 112              		.loc 1 163 0
+ 113 0016 1F4B     		ldr	r3, .L13
+ 114 0018 1B78     		ldrb	r3, [r3]
+ 115 001a DBB2     		uxtb	r3, r3
+ 116 001c 522B     		cmp	r3, #82
+ 117 001e 03D1     		bne	.L6
+ 164:.\UI.c        ****         {
+ 165:.\UI.c        ****             currentButtonPosition = NOTE1_VALUE;
+ 118              		.loc 1 165 0
+ 119 0020 1D4B     		ldr	r3, .L13+4
+ 120 0022 0022     		mov	r2, #0
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 6
+
+
+ 121 0024 1A80     		strh	r2, [r3]
+ 122 0026 2AE0     		b	.L7
+ 123              	.L6:
+ 166:.\UI.c        ****         }
+ 167:.\UI.c        ****         else if (color == 'G')
+ 124              		.loc 1 167 0
+ 125 0028 1A4B     		ldr	r3, .L13
+ 126 002a 1B78     		ldrb	r3, [r3]
+ 127 002c DBB2     		uxtb	r3, r3
+ 128 002e 472B     		cmp	r3, #71
+ 129 0030 03D1     		bne	.L8
+ 168:.\UI.c        ****         {
+ 169:.\UI.c        ****             currentButtonPosition = NOTE2_VALUE;
+ 130              		.loc 1 169 0
+ 131 0032 194B     		ldr	r3, .L13+4
+ 132 0034 0122     		mov	r2, #1
+ 133 0036 1A80     		strh	r2, [r3]
+ 134 0038 21E0     		b	.L7
+ 135              	.L8:
+ 170:.\UI.c        ****         }
+ 171:.\UI.c        ****         else if (color == 'b')
+ 136              		.loc 1 171 0
+ 137 003a 164B     		ldr	r3, .L13
+ 138 003c 1B78     		ldrb	r3, [r3]
+ 139 003e DBB2     		uxtb	r3, r3
+ 140 0040 622B     		cmp	r3, #98
+ 141 0042 03D1     		bne	.L9
+ 172:.\UI.c        ****         {
+ 173:.\UI.c        ****             currentButtonPosition = NOTE3_VALUE;
+ 142              		.loc 1 173 0
+ 143 0044 144B     		ldr	r3, .L13+4
+ 144 0046 0222     		mov	r2, #2
+ 145 0048 1A80     		strh	r2, [r3]
+ 146 004a 18E0     		b	.L7
+ 147              	.L9:
+ 174:.\UI.c        ****         }
+ 175:.\UI.c        ****         else if (color == 'B')
+ 148              		.loc 1 175 0
+ 149 004c 114B     		ldr	r3, .L13
+ 150 004e 1B78     		ldrb	r3, [r3]
+ 151 0050 DBB2     		uxtb	r3, r3
+ 152 0052 422B     		cmp	r3, #66
+ 153 0054 03D1     		bne	.L10
+ 176:.\UI.c        ****         {
+ 177:.\UI.c        ****             currentButtonPosition = NOTE4_VALUE;
+ 154              		.loc 1 177 0
+ 155 0056 104B     		ldr	r3, .L13+4
+ 156 0058 0322     		mov	r2, #3
+ 157 005a 1A80     		strh	r2, [r3]
+ 158 005c 0FE0     		b	.L7
+ 159              	.L10:
+ 178:.\UI.c        ****         }
+ 179:.\UI.c        ****         else if (color == 'W')
+ 160              		.loc 1 179 0
+ 161 005e 0D4B     		ldr	r3, .L13
+ 162 0060 1B78     		ldrb	r3, [r3]
+ 163 0062 DBB2     		uxtb	r3, r3
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 7
+
+
+ 164 0064 572B     		cmp	r3, #87
+ 165 0066 03D1     		bne	.L11
+ 180:.\UI.c        ****         {
+ 181:.\UI.c        ****             currentButtonPosition = NOTE5_VALUE;
+ 166              		.loc 1 181 0
+ 167 0068 0B4B     		ldr	r3, .L13+4
+ 168 006a 0422     		mov	r2, #4
+ 169 006c 1A80     		strh	r2, [r3]
+ 170 006e 06E0     		b	.L7
+ 171              	.L11:
+ 182:.\UI.c        ****         }
+ 183:.\UI.c        ****         else
+ 184:.\UI.c        ****         {
+ 185:.\UI.c        ****             currentButtonPosition = NO_FINGER_ON_SLIDER;
+ 172              		.loc 1 185 0
+ 173 0070 094B     		ldr	r3, .L13+4
+ 174 0072 0122     		mov	r2, #1
+ 175 0074 5242     		neg	r2, r2
+ 176 0076 1A80     		strh	r2, [r3]
+ 186:.\UI.c        ****             color = 'U';
+ 177              		.loc 1 186 0
+ 178 0078 064B     		ldr	r3, .L13
+ 179 007a 5522     		mov	r2, #85
+ 180 007c 1A70     		strb	r2, [r3]
+ 181              	.L7:
+ 187:.\UI.c        ****         }
+ 188:.\UI.c        ****         
+ 189:.\UI.c        ****         uiChangeStatus = currentButtonPosition; 
+ 182              		.loc 1 189 0
+ 183 007e BB1D     		add	r3, r7, #6
+ 184 0080 054A     		ldr	r2, .L13+4
+ 185 0082 1288     		ldrh	r2, [r2]
+ 186 0084 1A80     		strh	r2, [r3]
+ 187              	.L5:
+ 190:.\UI.c        ****     }
+ 191:.\UI.c        ****     
+ 192:.\UI.c        ****     return uiChangeStatus;
+ 188              		.loc 1 192 0
+ 189 0086 BB1D     		add	r3, r7, #6
+ 190 0088 1B88     		ldrh	r3, [r3]
+ 193:.\UI.c        **** }
+ 191              		.loc 1 193 0
+ 192 008a 181C     		mov	r0, r3
+ 193 008c BD46     		mov	sp, r7
+ 194 008e 02B0     		add	sp, sp, #8
+ 195              		@ sp needed
+ 196 0090 80BD     		pop	{r7, pc}
+ 197              	.L14:
+ 198 0092 C046     		.align	2
+ 199              	.L13:
+ 200 0094 00000000 		.word	color
+ 201 0098 00000000 		.word	currentButtonPosition
+ 202              		.cfi_endproc
+ 203              	.LFE38:
+ 204              		.size	UIInput_Run, .-UIInput_Run
+ 205              		.section	.text.UIOutput_UpdateMailbox,"ax",%progbits
+ 206              		.align	2
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 8
+
+
+ 207              		.global	UIOutput_UpdateMailbox
+ 208              		.code	16
+ 209              		.thumb_func
+ 210              		.type	UIOutput_UpdateMailbox, %function
+ 211              	UIOutput_UpdateMailbox:
+ 212              	.LFB39:
+ 194:.\UI.c        **** 
+ 195:.\UI.c        **** /*******************************************************************************
+ 196:.\UI.c        **** * Function Name: UIOutput_UpdateMailbox
+ 197:.\UI.c        **** ********************************************************************************
+ 198:.\UI.c        **** * Summary:
+ 199:.\UI.c        **** *        Updates the UI LED output mailbox with a valid drive level data
+ 200:.\UI.c        **** *
+ 201:.\UI.c        **** * Parameters:
+ 202:.\UI.c        **** *  LED drive level
+ 203:.\UI.c        **** *
+ 204:.\UI.c        **** * Return:
+ 205:.\UI.c        **** *  Successful or not
+ 206:.\UI.c        **** *
+ 207:.\UI.c        **** *******************************************************************************/
+ 208:.\UI.c        **** uint8 UIOutput_UpdateMailbox (uint8 driveLevel)
+ 209:.\UI.c        **** {
+ 213              		.loc 1 209 0
+ 214              		.cfi_startproc
+ 215 0000 80B5     		push	{r7, lr}
+ 216              		.cfi_def_cfa_offset 8
+ 217              		.cfi_offset 7, -8
+ 218              		.cfi_offset 14, -4
+ 219 0002 82B0     		sub	sp, sp, #8
+ 220              		.cfi_def_cfa_offset 16
+ 221 0004 00AF     		add	r7, sp, #0
+ 222              		.cfi_def_cfa_register 7
+ 223 0006 021C     		mov	r2, r0
+ 224 0008 FB1D     		add	r3, r7, #7
+ 225 000a 1A70     		strb	r2, [r3]
+ 210:.\UI.c        ****     if(uiOutputMailbox.outputMailIndex != UI_OUTPUT_MAIL_SIZE)
+ 226              		.loc 1 210 0
+ 227 000c 0C4B     		ldr	r3, .L19
+ 228 000e 1B78     		ldrb	r3, [r3]
+ 229 0010 022B     		cmp	r3, #2
+ 230 0012 0FD0     		beq	.L16
+ 211:.\UI.c        ****     {
+ 212:.\UI.c        ****         uiOutputMailbox.outputMail[uiOutputMailbox.outputMailIndex].LedDriveLevel = driveLevel;
+ 231              		.loc 1 212 0
+ 232 0014 0A4B     		ldr	r3, .L19
+ 233 0016 1B78     		ldrb	r3, [r3]
+ 234 0018 0949     		ldr	r1, .L19
+ 235 001a 5B00     		lsl	r3, r3, #1
+ 236 001c FA1D     		add	r2, r7, #7
+ 237 001e CB18     		add	r3, r1, r3
+ 238 0020 1278     		ldrb	r2, [r2]
+ 239 0022 9A70     		strb	r2, [r3, #2]
+ 213:.\UI.c        ****         uiOutputMailbox.outputMailIndex++;
+ 240              		.loc 1 213 0
+ 241 0024 064B     		ldr	r3, .L19
+ 242 0026 1B78     		ldrb	r3, [r3]
+ 243 0028 0133     		add	r3, r3, #1
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 9
+
+
+ 244 002a DAB2     		uxtb	r2, r3
+ 245 002c 044B     		ldr	r3, .L19
+ 246 002e 1A70     		strb	r2, [r3]
+ 214:.\UI.c        ****     }
+ 215:.\UI.c        ****     else
+ 216:.\UI.c        ****     {
+ 217:.\UI.c        ****         return UI_MAIL_UPDATE_OVERFLOW_FAILURE;
+ 218:.\UI.c        ****     }
+ 219:.\UI.c        ****     
+ 220:.\UI.c        ****     return UI_MAIL_UPDATE_SUCCESSFUL;
+ 247              		.loc 1 220 0
+ 248 0030 0123     		mov	r3, #1
+ 249 0032 00E0     		b	.L18
+ 250              	.L16:
+ 217:.\UI.c        ****     }
+ 251              		.loc 1 217 0
+ 252 0034 0023     		mov	r3, #0
+ 253              	.L18:
+ 221:.\UI.c        **** }
+ 254              		.loc 1 221 0
+ 255 0036 181C     		mov	r0, r3
+ 256 0038 BD46     		mov	sp, r7
+ 257 003a 02B0     		add	sp, sp, #8
+ 258              		@ sp needed
+ 259 003c 80BD     		pop	{r7, pc}
+ 260              	.L20:
+ 261 003e C046     		.align	2
+ 262              	.L19:
+ 263 0040 00000000 		.word	uiOutputMailbox
+ 264              		.cfi_endproc
+ 265              	.LFE39:
+ 266              		.size	UIOutput_UpdateMailbox, .-UIOutput_UpdateMailbox
+ 267              		.section	.text.UIOutput_Run,"ax",%progbits
+ 268              		.align	2
+ 269              		.global	UIOutput_Run
+ 270              		.code	16
+ 271              		.thumb_func
+ 272              		.type	UIOutput_Run, %function
+ 273              	UIOutput_Run:
+ 274              	.LFB40:
+ 222:.\UI.c        **** 
+ 223:.\UI.c        **** /*******************************************************************************
+ 224:.\UI.c        **** * Function Name: UIOutput_Run
+ 225:.\UI.c        **** ********************************************************************************
+ 226:.\UI.c        **** * Summary:
+ 227:.\UI.c        **** *        Runs the user interface output engine for the MIDI interface
+ 228:.\UI.c        **** *
+ 229:.\UI.c        **** * Parameters:
+ 230:.\UI.c        **** *  void
+ 231:.\UI.c        **** *
+ 232:.\UI.c        **** * Return:
+ 233:.\UI.c        **** *  void
+ 234:.\UI.c        **** *
+ 235:.\UI.c        **** *******************************************************************************/
+ 236:.\UI.c        **** void UIOutput_Run(void)
+ 237:.\UI.c        **** {
+ 275              		.loc 1 237 0
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 10
+
+
+ 276              		.cfi_startproc
+ 277 0000 80B5     		push	{r7, lr}
+ 278              		.cfi_def_cfa_offset 8
+ 279              		.cfi_offset 7, -8
+ 280              		.cfi_offset 14, -4
+ 281 0002 00AF     		add	r7, sp, #0
+ 282              		.cfi_def_cfa_register 7
+ 238:.\UI.c        ****     while(uiOutputMailbox.outputMailIndex != 0)
+ 283              		.loc 1 238 0
+ 284 0004 0EE0     		b	.L22
+ 285              	.L23:
+ 239:.\UI.c        ****     {
+ 240:.\UI.c        ****         uiOutputMailbox.outputMailIndex--;
+ 286              		.loc 1 240 0
+ 287 0006 0A4B     		ldr	r3, .L24
+ 288 0008 1B78     		ldrb	r3, [r3]
+ 289 000a 013B     		sub	r3, r3, #1
+ 290 000c DAB2     		uxtb	r2, r3
+ 291 000e 084B     		ldr	r3, .L24
+ 292 0010 1A70     		strb	r2, [r3]
+ 241:.\UI.c        ****         PWM_WriteCompare(uiOutputMailbox.outputMail[uiOutputMailbox.outputMailIndex].LedDriveLevel)
+ 293              		.loc 1 241 0
+ 294 0012 074B     		ldr	r3, .L24
+ 295 0014 1B78     		ldrb	r3, [r3]
+ 296 0016 064A     		ldr	r2, .L24
+ 297 0018 5B00     		lsl	r3, r3, #1
+ 298 001a D318     		add	r3, r2, r3
+ 299 001c 9B78     		ldrb	r3, [r3, #2]
+ 300 001e 181C     		mov	r0, r3
+ 301 0020 FFF7FEFF 		bl	PWM_WriteCompare
+ 302              	.L22:
+ 238:.\UI.c        ****     while(uiOutputMailbox.outputMailIndex != 0)
+ 303              		.loc 1 238 0
+ 304 0024 024B     		ldr	r3, .L24
+ 305 0026 1B78     		ldrb	r3, [r3]
+ 306 0028 002B     		cmp	r3, #0
+ 307 002a ECD1     		bne	.L23
+ 242:.\UI.c        ****     }
+ 243:.\UI.c        **** }
+ 308              		.loc 1 243 0
+ 309 002c BD46     		mov	sp, r7
+ 310              		@ sp needed
+ 311 002e 80BD     		pop	{r7, pc}
+ 312              	.L25:
+ 313              		.align	2
+ 314              	.L24:
+ 315 0030 00000000 		.word	uiOutputMailbox
+ 316              		.cfi_endproc
+ 317              	.LFE40:
+ 318              		.size	UIOutput_Run, .-UIOutput_Run
+ 319              		.text
+ 320              	.Letext0:
+ 321              		.file 2 "Generated_Source\\PSoC4/Cytypes.h"
+ 322              		.file 3 "./UI.h"
+ 323              		.file 4 "Generated_Source\\PSoC4/BLE_Stack.h"
+ 324              		.section	.debug_info,"",%progbits
+ 325              	.Ldebug_info0:
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 11
+
+
+ 326 0000 DF030000 		.4byte	0x3df
+ 327 0004 0400     		.2byte	0x4
+ 328 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 329 000a 04       		.byte	0x4
+ 330 000b 01       		.uleb128 0x1
+ 331 000c B7060000 		.4byte	.LASF100
+ 332 0010 01       		.byte	0x1
+ 333 0011 00000000 		.4byte	.LASF101
+ 334 0015 59010000 		.4byte	.LASF102
+ 335 0019 00000000 		.4byte	.Ldebug_ranges0+0
+ 336 001d 00000000 		.4byte	0
+ 337 0021 00000000 		.4byte	.Ldebug_line0
+ 338 0025 02       		.uleb128 0x2
+ 339 0026 01       		.byte	0x1
+ 340 0027 06       		.byte	0x6
+ 341 0028 42050000 		.4byte	.LASF0
+ 342 002c 02       		.uleb128 0x2
+ 343 002d 01       		.byte	0x1
+ 344 002e 08       		.byte	0x8
+ 345 002f BE040000 		.4byte	.LASF1
+ 346 0033 02       		.uleb128 0x2
+ 347 0034 02       		.byte	0x2
+ 348 0035 05       		.byte	0x5
+ 349 0036 E8000000 		.4byte	.LASF2
+ 350 003a 02       		.uleb128 0x2
+ 351 003b 02       		.byte	0x2
+ 352 003c 07       		.byte	0x7
+ 353 003d 70060000 		.4byte	.LASF3
+ 354 0041 02       		.uleb128 0x2
+ 355 0042 04       		.byte	0x4
+ 356 0043 05       		.byte	0x5
+ 357 0044 4A030000 		.4byte	.LASF4
+ 358 0048 02       		.uleb128 0x2
+ 359 0049 04       		.byte	0x4
+ 360 004a 07       		.byte	0x7
+ 361 004b D5050000 		.4byte	.LASF5
+ 362 004f 02       		.uleb128 0x2
+ 363 0050 08       		.byte	0x8
+ 364 0051 05       		.byte	0x5
+ 365 0052 42010000 		.4byte	.LASF6
+ 366 0056 02       		.uleb128 0x2
+ 367 0057 08       		.byte	0x8
+ 368 0058 07       		.byte	0x7
+ 369 0059 33030000 		.4byte	.LASF7
+ 370 005d 03       		.uleb128 0x3
+ 371 005e 04       		.byte	0x4
+ 372 005f 05       		.byte	0x5
+ 373 0060 696E7400 		.ascii	"int\000"
+ 374 0064 02       		.uleb128 0x2
+ 375 0065 04       		.byte	0x4
+ 376 0066 07       		.byte	0x7
+ 377 0067 A7050000 		.4byte	.LASF8
+ 378 006b 04       		.uleb128 0x4
+ 379 006c 92040000 		.4byte	.LASF9
+ 380 0070 02       		.byte	0x2
+ 381 0071 9801     		.2byte	0x198
+ 382 0073 2C000000 		.4byte	0x2c
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 12
+
+
+ 383 0077 04       		.uleb128 0x4
+ 384 0078 CD010000 		.4byte	.LASF10
+ 385 007c 02       		.byte	0x2
+ 386 007d 9901     		.2byte	0x199
+ 387 007f 3A000000 		.4byte	0x3a
+ 388 0083 02       		.uleb128 0x2
+ 389 0084 04       		.byte	0x4
+ 390 0085 04       		.byte	0x4
+ 391 0086 B3020000 		.4byte	.LASF11
+ 392 008a 02       		.uleb128 0x2
+ 393 008b 08       		.byte	0x8
+ 394 008c 04       		.byte	0x4
+ 395 008d 44080000 		.4byte	.LASF12
+ 396 0091 02       		.uleb128 0x2
+ 397 0092 01       		.byte	0x1
+ 398 0093 08       		.byte	0x8
+ 399 0094 B2060000 		.4byte	.LASF13
+ 400 0098 02       		.uleb128 0x2
+ 401 0099 04       		.byte	0x4
+ 402 009a 07       		.byte	0x7
+ 403 009b 0C010000 		.4byte	.LASF14
+ 404 009f 05       		.uleb128 0x5
+ 405 00a0 01       		.byte	0x1
+ 406 00a1 04       		.byte	0x4
+ 407 00a2 4201     		.2byte	0x142
+ 408 00a4 5C020000 		.4byte	0x25c
+ 409 00a8 06       		.uleb128 0x6
+ 410 00a9 4F020000 		.4byte	.LASF15
+ 411 00ad 00       		.sleb128 0
+ 412 00ae 06       		.uleb128 0x6
+ 413 00af 9C010000 		.4byte	.LASF16
+ 414 00b3 01       		.sleb128 1
+ 415 00b4 06       		.uleb128 0x6
+ 416 00b5 DC090000 		.4byte	.LASF17
+ 417 00b9 02       		.sleb128 2
+ 418 00ba 06       		.uleb128 0x6
+ 419 00bb A2080000 		.4byte	.LASF18
+ 420 00bf 03       		.sleb128 3
+ 421 00c0 06       		.uleb128 0x6
+ 422 00c1 07000000 		.4byte	.LASF19
+ 423 00c5 04       		.sleb128 4
+ 424 00c6 06       		.uleb128 0x6
+ 425 00c7 F2030000 		.4byte	.LASF20
+ 426 00cb 05       		.sleb128 5
+ 427 00cc 06       		.uleb128 0x6
+ 428 00cd 5F000000 		.4byte	.LASF21
+ 429 00d1 06       		.sleb128 6
+ 430 00d2 06       		.uleb128 0x6
+ 431 00d3 78070000 		.4byte	.LASF22
+ 432 00d7 20       		.sleb128 32
+ 433 00d8 06       		.uleb128 0x6
+ 434 00d9 E7050000 		.4byte	.LASF23
+ 435 00dd 21       		.sleb128 33
+ 436 00de 06       		.uleb128 0x6
+ 437 00df 7E080000 		.4byte	.LASF24
+ 438 00e3 22       		.sleb128 34
+ 439 00e4 06       		.uleb128 0x6
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 13
+
+
+ 440 00e5 1E040000 		.4byte	.LASF25
+ 441 00e9 23       		.sleb128 35
+ 442 00ea 06       		.uleb128 0x6
+ 443 00eb 8B050000 		.4byte	.LASF26
+ 444 00ef 24       		.sleb128 36
+ 445 00f0 06       		.uleb128 0x6
+ 446 00f1 F2000000 		.4byte	.LASF27
+ 447 00f5 25       		.sleb128 37
+ 448 00f6 06       		.uleb128 0x6
+ 449 00f7 A9030000 		.4byte	.LASF28
+ 450 00fb 26       		.sleb128 38
+ 451 00fc 06       		.uleb128 0x6
+ 452 00fd 81030000 		.4byte	.LASF29
+ 453 0101 27       		.sleb128 39
+ 454 0102 06       		.uleb128 0x6
+ 455 0103 92000000 		.4byte	.LASF30
+ 456 0107 28       		.sleb128 40
+ 457 0108 06       		.uleb128 0x6
+ 458 0109 1F060000 		.4byte	.LASF31
+ 459 010d 29       		.sleb128 41
+ 460 010e 06       		.uleb128 0x6
+ 461 010f 36000000 		.4byte	.LASF32
+ 462 0113 2A       		.sleb128 42
+ 463 0114 06       		.uleb128 0x6
+ 464 0115 E4070000 		.4byte	.LASF33
+ 465 0119 2B       		.sleb128 43
+ 466 011a 06       		.uleb128 0x6
+ 467 011b EB010000 		.4byte	.LASF34
+ 468 011f 2C       		.sleb128 44
+ 469 0120 06       		.uleb128 0x6
+ 470 0121 E9020000 		.4byte	.LASF35
+ 471 0125 2D       		.sleb128 45
+ 472 0126 06       		.uleb128 0x6
+ 473 0127 C4000000 		.4byte	.LASF36
+ 474 012b 2E       		.sleb128 46
+ 475 012c 06       		.uleb128 0x6
+ 476 012d E20A0000 		.4byte	.LASF37
+ 477 0131 2F       		.sleb128 47
+ 478 0132 06       		.uleb128 0x6
+ 479 0133 15010000 		.4byte	.LASF38
+ 480 0137 30       		.sleb128 48
+ 481 0138 06       		.uleb128 0x6
+ 482 0139 6E040000 		.4byte	.LASF39
+ 483 013d 31       		.sleb128 49
+ 484 013e 06       		.uleb128 0x6
+ 485 013f 12030000 		.4byte	.LASF40
+ 486 0143 32       		.sleb128 50
+ 487 0144 06       		.uleb128 0x6
+ 488 0145 8B060000 		.4byte	.LASF41
+ 489 0149 33       		.sleb128 51
+ 490 014a 06       		.uleb128 0x6
+ 491 014b 78000000 		.4byte	.LASF42
+ 492 014f C000     		.sleb128 64
+ 493 0151 06       		.uleb128 0x6
+ 494 0152 BA050000 		.4byte	.LASF43
+ 495 0156 C100     		.sleb128 65
+ 496 0158 06       		.uleb128 0x6
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 14
+
+
+ 497 0159 C40A0000 		.4byte	.LASF44
+ 498 015d C200     		.sleb128 66
+ 499 015f 06       		.uleb128 0x6
+ 500 0160 AF010000 		.4byte	.LASF45
+ 501 0164 C300     		.sleb128 67
+ 502 0166 06       		.uleb128 0x6
+ 503 0167 8C090000 		.4byte	.LASF46
+ 504 016b C400     		.sleb128 68
+ 505 016d 06       		.uleb128 0x6
+ 506 016e 26090000 		.4byte	.LASF47
+ 507 0172 C500     		.sleb128 69
+ 508 0174 06       		.uleb128 0x6
+ 509 0175 6B090000 		.4byte	.LASF48
+ 510 0179 C600     		.sleb128 70
+ 511 017b 06       		.uleb128 0x6
+ 512 017c 24050000 		.4byte	.LASF49
+ 513 0180 C700     		.sleb128 71
+ 514 0182 06       		.uleb128 0x6
+ 515 0183 64050000 		.4byte	.LASF50
+ 516 0187 C800     		.sleb128 72
+ 517 0189 06       		.uleb128 0x6
+ 518 018a B9020000 		.4byte	.LASF51
+ 519 018e C900     		.sleb128 73
+ 520 0190 06       		.uleb128 0x6
+ 521 0191 A7070000 		.4byte	.LASF52
+ 522 0195 CA00     		.sleb128 74
+ 523 0197 06       		.uleb128 0x6
+ 524 0198 0F020000 		.4byte	.LASF53
+ 525 019c CB00     		.sleb128 75
+ 526 019e 06       		.uleb128 0x6
+ 527 019f 0A050000 		.4byte	.LASF54
+ 528 01a3 CC00     		.sleb128 76
+ 529 01a5 06       		.uleb128 0x6
+ 530 01a6 1C000000 		.4byte	.LASF55
+ 531 01aa CD00     		.sleb128 77
+ 532 01ac 06       		.uleb128 0x6
+ 533 01ad 4D090000 		.4byte	.LASF56
+ 534 01b1 CE00     		.sleb128 78
+ 535 01b3 06       		.uleb128 0x6
+ 536 01b4 CC040000 		.4byte	.LASF57
+ 537 01b8 CF00     		.sleb128 79
+ 538 01ba 06       		.uleb128 0x6
+ 539 01bb 510A0000 		.4byte	.LASF58
+ 540 01bf D000     		.sleb128 80
+ 541 01c1 06       		.uleb128 0x6
+ 542 01c2 C5070000 		.4byte	.LASF59
+ 543 01c6 D100     		.sleb128 81
+ 544 01c8 06       		.uleb128 0x6
+ 545 01c9 D1030000 		.4byte	.LASF60
+ 546 01cd D200     		.sleb128 82
+ 547 01cf 06       		.uleb128 0x6
+ 548 01d0 53030000 		.4byte	.LASF61
+ 549 01d4 D300     		.sleb128 83
+ 550 01d6 06       		.uleb128 0x6
+ 551 01d7 2E020000 		.4byte	.LASF62
+ 552 01db D400     		.sleb128 84
+ 553 01dd 06       		.uleb128 0x6
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 15
+
+
+ 554 01de A00A0000 		.4byte	.LASF63
+ 555 01e2 D500     		.sleb128 85
+ 556 01e4 06       		.uleb128 0x6
+ 557 01e5 2F0A0000 		.4byte	.LASF64
+ 558 01e9 D600     		.sleb128 86
+ 559 01eb 06       		.uleb128 0x6
+ 560 01ec FC090000 		.4byte	.LASF65
+ 561 01f0 D700     		.sleb128 87
+ 562 01f2 06       		.uleb128 0x6
+ 563 01f3 4D060000 		.4byte	.LASF66
+ 564 01f7 D800     		.sleb128 88
+ 565 01f9 06       		.uleb128 0x6
+ 566 01fa 98040000 		.4byte	.LASF67
+ 567 01fe F000     		.sleb128 112
+ 568 0200 06       		.uleb128 0x6
+ 569 0201 DA080000 		.4byte	.LASF68
+ 570 0205 F100     		.sleb128 113
+ 571 0207 06       		.uleb128 0x6
+ 572 0208 45070000 		.4byte	.LASF69
+ 573 020c F200     		.sleb128 114
+ 574 020e 06       		.uleb128 0x6
+ 575 020f 66020000 		.4byte	.LASF70
+ 576 0213 F300     		.sleb128 115
+ 577 0215 06       		.uleb128 0x6
+ 578 0216 50040000 		.4byte	.LASF71
+ 579 021a F400     		.sleb128 116
+ 580 021c 06       		.uleb128 0x6
+ 581 021d FE050000 		.4byte	.LASF72
+ 582 0221 F500     		.sleb128 117
+ 583 0223 06       		.uleb128 0x6
+ 584 0224 84020000 		.4byte	.LASF73
+ 585 0228 F600     		.sleb128 118
+ 586 022a 06       		.uleb128 0x6
+ 587 022b BB080000 		.4byte	.LASF74
+ 588 022f F700     		.sleb128 119
+ 589 0231 06       		.uleb128 0x6
+ 590 0232 21080000 		.4byte	.LASF75
+ 591 0236 F800     		.sleb128 120
+ 592 0238 06       		.uleb128 0x6
+ 593 0239 4B080000 		.4byte	.LASF76
+ 594 023d F900     		.sleb128 121
+ 595 023f 06       		.uleb128 0x6
+ 596 0240 B8090000 		.4byte	.LASF77
+ 597 0244 FA00     		.sleb128 122
+ 598 0246 06       		.uleb128 0x6
+ 599 0247 03080000 		.4byte	.LASF78
+ 600 024b FA01     		.sleb128 250
+ 601 024d 06       		.uleb128 0x6
+ 602 024e EB040000 		.4byte	.LASF79
+ 603 0252 FB01     		.sleb128 251
+ 604 0254 06       		.uleb128 0x6
+ 605 0255 EE090000 		.4byte	.LASF80
+ 606 0259 FF01     		.sleb128 255
+ 607 025b 00       		.byte	0
+ 608 025c 07       		.uleb128 0x7
+ 609 025d 02       		.byte	0x2
+ 610 025e 03       		.byte	0x3
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 16
+
+
+ 611 025f 31       		.byte	0x31
+ 612 0260 7D020000 		.4byte	0x27d
+ 613 0264 08       		.uleb128 0x8
+ 614 0265 44040000 		.4byte	.LASF81
+ 615 0269 03       		.byte	0x3
+ 616 026a 33       		.byte	0x33
+ 617 026b 6B000000 		.4byte	0x6b
+ 618 026f 00       		.byte	0
+ 619 0270 08       		.uleb128 0x8
+ 620 0271 A5020000 		.4byte	.LASF82
+ 621 0275 03       		.byte	0x3
+ 622 0276 34       		.byte	0x34
+ 623 0277 6B000000 		.4byte	0x6b
+ 624 027b 01       		.byte	0x1
+ 625 027c 00       		.byte	0
+ 626 027d 09       		.uleb128 0x9
+ 627 027e 3C060000 		.4byte	.LASF83
+ 628 0282 03       		.byte	0x3
+ 629 0283 35       		.byte	0x35
+ 630 0284 5C020000 		.4byte	0x25c
+ 631 0288 07       		.uleb128 0x7
+ 632 0289 05       		.byte	0x5
+ 633 028a 03       		.byte	0x3
+ 634 028b 37       		.byte	0x37
+ 635 028c A9020000 		.4byte	0x2a9
+ 636 0290 08       		.uleb128 0x8
+ 637 0291 0E040000 		.4byte	.LASF84
+ 638 0295 03       		.byte	0x3
+ 639 0296 39       		.byte	0x39
+ 640 0297 6B000000 		.4byte	0x6b
+ 641 029b 00       		.byte	0
+ 642 029c 08       		.uleb128 0x8
+ 643 029d 9C070000 		.4byte	.LASF85
+ 644 02a1 03       		.byte	0x3
+ 645 02a2 3A       		.byte	0x3a
+ 646 02a3 A9020000 		.4byte	0x2a9
+ 647 02a7 01       		.byte	0x1
+ 648 02a8 00       		.byte	0
+ 649 02a9 0A       		.uleb128 0xa
+ 650 02aa 7D020000 		.4byte	0x27d
+ 651 02ae B9020000 		.4byte	0x2b9
+ 652 02b2 0B       		.uleb128 0xb
+ 653 02b3 98000000 		.4byte	0x98
+ 654 02b7 01       		.byte	0x1
+ 655 02b8 00       		.byte	0
+ 656 02b9 09       		.uleb128 0x9
+ 657 02ba 00090000 		.4byte	.LASF86
+ 658 02be 03       		.byte	0x3
+ 659 02bf 3B       		.byte	0x3b
+ 660 02c0 88020000 		.4byte	0x288
+ 661 02c4 0C       		.uleb128 0xc
+ 662 02c5 01       		.byte	0x1
+ 663 02c6 03       		.byte	0x3
+ 664 02c7 41       		.byte	0x41
+ 665 02c8 DF020000 		.4byte	0x2df
+ 666 02cc 06       		.uleb128 0x6
+ 667 02cd AA090000 		.4byte	.LASF87
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 17
+
+
+ 668 02d1 00       		.sleb128 0
+ 669 02d2 06       		.uleb128 0x6
+ 670 02d3 14090000 		.4byte	.LASF88
+ 671 02d7 01       		.sleb128 1
+ 672 02d8 06       		.uleb128 0x6
+ 673 02d9 6E080000 		.4byte	.LASF89
+ 674 02dd 02       		.sleb128 2
+ 675 02de 00       		.byte	0
+ 676 02df 09       		.uleb128 0x9
+ 677 02e0 A0030000 		.4byte	.LASF90
+ 678 02e4 03       		.byte	0x3
+ 679 02e5 45       		.byte	0x45
+ 680 02e6 C4020000 		.4byte	0x2c4
+ 681 02ea 0D       		.uleb128 0xd
+ 682 02eb 50010000 		.4byte	.LASF103
+ 683 02ef 01       		.byte	0x1
+ 684 02f0 2C       		.byte	0x2c
+ 685 02f1 00000000 		.4byte	.LFB37
+ 686 02f5 1C000000 		.4byte	.LFE37-.LFB37
+ 687 02f9 01       		.uleb128 0x1
+ 688 02fa 9C       		.byte	0x9c
+ 689 02fb 0B030000 		.4byte	0x30b
+ 690 02ff 0E       		.uleb128 0xe
+ 691 0300 250A0000 		.4byte	.LASF104
+ 692 0304 01       		.byte	0x1
+ 693 0305 2E       		.byte	0x2e
+ 694 0306 6B000000 		.4byte	0x6b
+ 695 030a 00       		.byte	0
+ 696 030b 0F       		.uleb128 0xf
+ 697 030c 36010000 		.4byte	.LASF91
+ 698 0310 01       		.byte	0x1
+ 699 0311 4D       		.byte	0x4d
+ 700 0312 77000000 		.4byte	0x77
+ 701 0316 00000000 		.4byte	.LFB38
+ 702 031a 9C000000 		.4byte	.LFE38-.LFB38
+ 703 031e 01       		.uleb128 0x1
+ 704 031f 9C       		.byte	0x9c
+ 705 0320 33030000 		.4byte	0x333
+ 706 0324 10       		.uleb128 0x10
+ 707 0325 700A0000 		.4byte	.LASF105
+ 708 0329 01       		.byte	0x1
+ 709 032a 4F       		.byte	0x4f
+ 710 032b 77000000 		.4byte	0x77
+ 711 032f 02       		.uleb128 0x2
+ 712 0330 91       		.byte	0x91
+ 713 0331 76       		.sleb128 -10
+ 714 0332 00       		.byte	0
+ 715 0333 11       		.uleb128 0x11
+ 716 0334 D2020000 		.4byte	.LASF92
+ 717 0338 01       		.byte	0x1
+ 718 0339 D0       		.byte	0xd0
+ 719 033a 6B000000 		.4byte	0x6b
+ 720 033e 00000000 		.4byte	.LFB39
+ 721 0342 44000000 		.4byte	.LFE39-.LFB39
+ 722 0346 01       		.uleb128 0x1
+ 723 0347 9C       		.byte	0x9c
+ 724 0348 5B030000 		.4byte	0x35b
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 18
+
+
+ 725 034c 12       		.uleb128 0x12
+ 726 034d 950A0000 		.4byte	.LASF106
+ 727 0351 01       		.byte	0x1
+ 728 0352 D0       		.byte	0xd0
+ 729 0353 6B000000 		.4byte	0x6b
+ 730 0357 02       		.uleb128 0x2
+ 731 0358 91       		.byte	0x91
+ 732 0359 77       		.sleb128 -9
+ 733 035a 00       		.byte	0
+ 734 035b 13       		.uleb128 0x13
+ 735 035c 74030000 		.4byte	.LASF107
+ 736 0360 01       		.byte	0x1
+ 737 0361 EC       		.byte	0xec
+ 738 0362 00000000 		.4byte	.LFB40
+ 739 0366 34000000 		.4byte	.LFE40-.LFB40
+ 740 036a 01       		.uleb128 0x1
+ 741 036b 9C       		.byte	0x9c
+ 742 036c 14       		.uleb128 0x14
+ 743 036d B4050000 		.4byte	.LASF93
+ 744 0371 03       		.byte	0x3
+ 745 0372 2C       		.byte	0x2c
+ 746 0373 77030000 		.4byte	0x377
+ 747 0377 15       		.uleb128 0x15
+ 748 0378 91000000 		.4byte	0x91
+ 749 037c 16       		.uleb128 0x16
+ 750 037d 83060000 		.4byte	.LASF94
+ 751 0381 01       		.byte	0x1
+ 752 0382 15       		.byte	0x15
+ 753 0383 DF020000 		.4byte	0x2df
+ 754 0387 05       		.uleb128 0x5
+ 755 0388 03       		.byte	0x3
+ 756 0389 00000000 		.4byte	uiState
+ 757 038d 16       		.uleb128 0x16
+ 758 038e 7F0A0000 		.4byte	.LASF95
+ 759 0392 01       		.byte	0x1
+ 760 0393 16       		.byte	0x16
+ 761 0394 77000000 		.4byte	0x77
+ 762 0398 05       		.uleb128 0x5
+ 763 0399 03       		.byte	0x3
+ 764 039a 00000000 		.4byte	currentSliderPosition
+ 765 039e 16       		.uleb128 0x16
+ 766 039f 4E050000 		.4byte	.LASF96
+ 767 03a3 01       		.byte	0x1
+ 768 03a4 17       		.byte	0x17
+ 769 03a5 77000000 		.4byte	0x77
+ 770 03a9 05       		.uleb128 0x5
+ 771 03aa 03       		.byte	0x3
+ 772 03ab 00000000 		.4byte	currentButtonPosition
+ 773 03af 16       		.uleb128 0x16
+ 774 03b0 61070000 		.4byte	.LASF97
+ 775 03b4 01       		.byte	0x1
+ 776 03b5 18       		.byte	0x18
+ 777 03b6 77000000 		.4byte	0x77
+ 778 03ba 05       		.uleb128 0x5
+ 779 03bb 03       		.byte	0x3
+ 780 03bc 00000000 		.4byte	previousButtonPosition
+ 781 03c0 16       		.uleb128 0x16
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 19
+
+
+ 782 03c1 D4010000 		.4byte	.LASF98
+ 783 03c5 01       		.byte	0x1
+ 784 03c6 19       		.byte	0x19
+ 785 03c7 77000000 		.4byte	0x77
+ 786 03cb 05       		.uleb128 0x5
+ 787 03cc 03       		.byte	0x3
+ 788 03cd 00000000 		.4byte	previousSliderPosition
+ 789 03d1 16       		.uleb128 0x16
+ 790 03d2 B4000000 		.4byte	.LASF99
+ 791 03d6 01       		.byte	0x1
+ 792 03d7 1A       		.byte	0x1a
+ 793 03d8 B9020000 		.4byte	0x2b9
+ 794 03dc 05       		.uleb128 0x5
+ 795 03dd 03       		.byte	0x3
+ 796 03de 00000000 		.4byte	uiOutputMailbox
+ 797 03e2 00       		.byte	0
+ 798              		.section	.debug_abbrev,"",%progbits
+ 799              	.Ldebug_abbrev0:
+ 800 0000 01       		.uleb128 0x1
+ 801 0001 11       		.uleb128 0x11
+ 802 0002 01       		.byte	0x1
+ 803 0003 25       		.uleb128 0x25
+ 804 0004 0E       		.uleb128 0xe
+ 805 0005 13       		.uleb128 0x13
+ 806 0006 0B       		.uleb128 0xb
+ 807 0007 03       		.uleb128 0x3
+ 808 0008 0E       		.uleb128 0xe
+ 809 0009 1B       		.uleb128 0x1b
+ 810 000a 0E       		.uleb128 0xe
+ 811 000b 55       		.uleb128 0x55
+ 812 000c 17       		.uleb128 0x17
+ 813 000d 11       		.uleb128 0x11
+ 814 000e 01       		.uleb128 0x1
+ 815 000f 10       		.uleb128 0x10
+ 816 0010 17       		.uleb128 0x17
+ 817 0011 00       		.byte	0
+ 818 0012 00       		.byte	0
+ 819 0013 02       		.uleb128 0x2
+ 820 0014 24       		.uleb128 0x24
+ 821 0015 00       		.byte	0
+ 822 0016 0B       		.uleb128 0xb
+ 823 0017 0B       		.uleb128 0xb
+ 824 0018 3E       		.uleb128 0x3e
+ 825 0019 0B       		.uleb128 0xb
+ 826 001a 03       		.uleb128 0x3
+ 827 001b 0E       		.uleb128 0xe
+ 828 001c 00       		.byte	0
+ 829 001d 00       		.byte	0
+ 830 001e 03       		.uleb128 0x3
+ 831 001f 24       		.uleb128 0x24
+ 832 0020 00       		.byte	0
+ 833 0021 0B       		.uleb128 0xb
+ 834 0022 0B       		.uleb128 0xb
+ 835 0023 3E       		.uleb128 0x3e
+ 836 0024 0B       		.uleb128 0xb
+ 837 0025 03       		.uleb128 0x3
+ 838 0026 08       		.uleb128 0x8
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 20
+
+
+ 839 0027 00       		.byte	0
+ 840 0028 00       		.byte	0
+ 841 0029 04       		.uleb128 0x4
+ 842 002a 16       		.uleb128 0x16
+ 843 002b 00       		.byte	0
+ 844 002c 03       		.uleb128 0x3
+ 845 002d 0E       		.uleb128 0xe
+ 846 002e 3A       		.uleb128 0x3a
+ 847 002f 0B       		.uleb128 0xb
+ 848 0030 3B       		.uleb128 0x3b
+ 849 0031 05       		.uleb128 0x5
+ 850 0032 49       		.uleb128 0x49
+ 851 0033 13       		.uleb128 0x13
+ 852 0034 00       		.byte	0
+ 853 0035 00       		.byte	0
+ 854 0036 05       		.uleb128 0x5
+ 855 0037 04       		.uleb128 0x4
+ 856 0038 01       		.byte	0x1
+ 857 0039 0B       		.uleb128 0xb
+ 858 003a 0B       		.uleb128 0xb
+ 859 003b 3A       		.uleb128 0x3a
+ 860 003c 0B       		.uleb128 0xb
+ 861 003d 3B       		.uleb128 0x3b
+ 862 003e 05       		.uleb128 0x5
+ 863 003f 01       		.uleb128 0x1
+ 864 0040 13       		.uleb128 0x13
+ 865 0041 00       		.byte	0
+ 866 0042 00       		.byte	0
+ 867 0043 06       		.uleb128 0x6
+ 868 0044 28       		.uleb128 0x28
+ 869 0045 00       		.byte	0
+ 870 0046 03       		.uleb128 0x3
+ 871 0047 0E       		.uleb128 0xe
+ 872 0048 1C       		.uleb128 0x1c
+ 873 0049 0D       		.uleb128 0xd
+ 874 004a 00       		.byte	0
+ 875 004b 00       		.byte	0
+ 876 004c 07       		.uleb128 0x7
+ 877 004d 13       		.uleb128 0x13
+ 878 004e 01       		.byte	0x1
+ 879 004f 0B       		.uleb128 0xb
+ 880 0050 0B       		.uleb128 0xb
+ 881 0051 3A       		.uleb128 0x3a
+ 882 0052 0B       		.uleb128 0xb
+ 883 0053 3B       		.uleb128 0x3b
+ 884 0054 0B       		.uleb128 0xb
+ 885 0055 01       		.uleb128 0x1
+ 886 0056 13       		.uleb128 0x13
+ 887 0057 00       		.byte	0
+ 888 0058 00       		.byte	0
+ 889 0059 08       		.uleb128 0x8
+ 890 005a 0D       		.uleb128 0xd
+ 891 005b 00       		.byte	0
+ 892 005c 03       		.uleb128 0x3
+ 893 005d 0E       		.uleb128 0xe
+ 894 005e 3A       		.uleb128 0x3a
+ 895 005f 0B       		.uleb128 0xb
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 21
+
+
+ 896 0060 3B       		.uleb128 0x3b
+ 897 0061 0B       		.uleb128 0xb
+ 898 0062 49       		.uleb128 0x49
+ 899 0063 13       		.uleb128 0x13
+ 900 0064 38       		.uleb128 0x38
+ 901 0065 0B       		.uleb128 0xb
+ 902 0066 00       		.byte	0
+ 903 0067 00       		.byte	0
+ 904 0068 09       		.uleb128 0x9
+ 905 0069 16       		.uleb128 0x16
+ 906 006a 00       		.byte	0
+ 907 006b 03       		.uleb128 0x3
+ 908 006c 0E       		.uleb128 0xe
+ 909 006d 3A       		.uleb128 0x3a
+ 910 006e 0B       		.uleb128 0xb
+ 911 006f 3B       		.uleb128 0x3b
+ 912 0070 0B       		.uleb128 0xb
+ 913 0071 49       		.uleb128 0x49
+ 914 0072 13       		.uleb128 0x13
+ 915 0073 00       		.byte	0
+ 916 0074 00       		.byte	0
+ 917 0075 0A       		.uleb128 0xa
+ 918 0076 01       		.uleb128 0x1
+ 919 0077 01       		.byte	0x1
+ 920 0078 49       		.uleb128 0x49
+ 921 0079 13       		.uleb128 0x13
+ 922 007a 01       		.uleb128 0x1
+ 923 007b 13       		.uleb128 0x13
+ 924 007c 00       		.byte	0
+ 925 007d 00       		.byte	0
+ 926 007e 0B       		.uleb128 0xb
+ 927 007f 21       		.uleb128 0x21
+ 928 0080 00       		.byte	0
+ 929 0081 49       		.uleb128 0x49
+ 930 0082 13       		.uleb128 0x13
+ 931 0083 2F       		.uleb128 0x2f
+ 932 0084 0B       		.uleb128 0xb
+ 933 0085 00       		.byte	0
+ 934 0086 00       		.byte	0
+ 935 0087 0C       		.uleb128 0xc
+ 936 0088 04       		.uleb128 0x4
+ 937 0089 01       		.byte	0x1
+ 938 008a 0B       		.uleb128 0xb
+ 939 008b 0B       		.uleb128 0xb
+ 940 008c 3A       		.uleb128 0x3a
+ 941 008d 0B       		.uleb128 0xb
+ 942 008e 3B       		.uleb128 0x3b
+ 943 008f 0B       		.uleb128 0xb
+ 944 0090 01       		.uleb128 0x1
+ 945 0091 13       		.uleb128 0x13
+ 946 0092 00       		.byte	0
+ 947 0093 00       		.byte	0
+ 948 0094 0D       		.uleb128 0xd
+ 949 0095 2E       		.uleb128 0x2e
+ 950 0096 01       		.byte	0x1
+ 951 0097 3F       		.uleb128 0x3f
+ 952 0098 19       		.uleb128 0x19
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 22
+
+
+ 953 0099 03       		.uleb128 0x3
+ 954 009a 0E       		.uleb128 0xe
+ 955 009b 3A       		.uleb128 0x3a
+ 956 009c 0B       		.uleb128 0xb
+ 957 009d 3B       		.uleb128 0x3b
+ 958 009e 0B       		.uleb128 0xb
+ 959 009f 27       		.uleb128 0x27
+ 960 00a0 19       		.uleb128 0x19
+ 961 00a1 11       		.uleb128 0x11
+ 962 00a2 01       		.uleb128 0x1
+ 963 00a3 12       		.uleb128 0x12
+ 964 00a4 06       		.uleb128 0x6
+ 965 00a5 40       		.uleb128 0x40
+ 966 00a6 18       		.uleb128 0x18
+ 967 00a7 9642     		.uleb128 0x2116
+ 968 00a9 19       		.uleb128 0x19
+ 969 00aa 01       		.uleb128 0x1
+ 970 00ab 13       		.uleb128 0x13
+ 971 00ac 00       		.byte	0
+ 972 00ad 00       		.byte	0
+ 973 00ae 0E       		.uleb128 0xe
+ 974 00af 34       		.uleb128 0x34
+ 975 00b0 00       		.byte	0
+ 976 00b1 03       		.uleb128 0x3
+ 977 00b2 0E       		.uleb128 0xe
+ 978 00b3 3A       		.uleb128 0x3a
+ 979 00b4 0B       		.uleb128 0xb
+ 980 00b5 3B       		.uleb128 0x3b
+ 981 00b6 0B       		.uleb128 0xb
+ 982 00b7 49       		.uleb128 0x49
+ 983 00b8 13       		.uleb128 0x13
+ 984 00b9 00       		.byte	0
+ 985 00ba 00       		.byte	0
+ 986 00bb 0F       		.uleb128 0xf
+ 987 00bc 2E       		.uleb128 0x2e
+ 988 00bd 01       		.byte	0x1
+ 989 00be 3F       		.uleb128 0x3f
+ 990 00bf 19       		.uleb128 0x19
+ 991 00c0 03       		.uleb128 0x3
+ 992 00c1 0E       		.uleb128 0xe
+ 993 00c2 3A       		.uleb128 0x3a
+ 994 00c3 0B       		.uleb128 0xb
+ 995 00c4 3B       		.uleb128 0x3b
+ 996 00c5 0B       		.uleb128 0xb
+ 997 00c6 27       		.uleb128 0x27
+ 998 00c7 19       		.uleb128 0x19
+ 999 00c8 49       		.uleb128 0x49
+ 1000 00c9 13       		.uleb128 0x13
+ 1001 00ca 11       		.uleb128 0x11
+ 1002 00cb 01       		.uleb128 0x1
+ 1003 00cc 12       		.uleb128 0x12
+ 1004 00cd 06       		.uleb128 0x6
+ 1005 00ce 40       		.uleb128 0x40
+ 1006 00cf 18       		.uleb128 0x18
+ 1007 00d0 9642     		.uleb128 0x2116
+ 1008 00d2 19       		.uleb128 0x19
+ 1009 00d3 01       		.uleb128 0x1
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 23
+
+
+ 1010 00d4 13       		.uleb128 0x13
+ 1011 00d5 00       		.byte	0
+ 1012 00d6 00       		.byte	0
+ 1013 00d7 10       		.uleb128 0x10
+ 1014 00d8 34       		.uleb128 0x34
+ 1015 00d9 00       		.byte	0
+ 1016 00da 03       		.uleb128 0x3
+ 1017 00db 0E       		.uleb128 0xe
+ 1018 00dc 3A       		.uleb128 0x3a
+ 1019 00dd 0B       		.uleb128 0xb
+ 1020 00de 3B       		.uleb128 0x3b
+ 1021 00df 0B       		.uleb128 0xb
+ 1022 00e0 49       		.uleb128 0x49
+ 1023 00e1 13       		.uleb128 0x13
+ 1024 00e2 02       		.uleb128 0x2
+ 1025 00e3 18       		.uleb128 0x18
+ 1026 00e4 00       		.byte	0
+ 1027 00e5 00       		.byte	0
+ 1028 00e6 11       		.uleb128 0x11
+ 1029 00e7 2E       		.uleb128 0x2e
+ 1030 00e8 01       		.byte	0x1
+ 1031 00e9 3F       		.uleb128 0x3f
+ 1032 00ea 19       		.uleb128 0x19
+ 1033 00eb 03       		.uleb128 0x3
+ 1034 00ec 0E       		.uleb128 0xe
+ 1035 00ed 3A       		.uleb128 0x3a
+ 1036 00ee 0B       		.uleb128 0xb
+ 1037 00ef 3B       		.uleb128 0x3b
+ 1038 00f0 0B       		.uleb128 0xb
+ 1039 00f1 27       		.uleb128 0x27
+ 1040 00f2 19       		.uleb128 0x19
+ 1041 00f3 49       		.uleb128 0x49
+ 1042 00f4 13       		.uleb128 0x13
+ 1043 00f5 11       		.uleb128 0x11
+ 1044 00f6 01       		.uleb128 0x1
+ 1045 00f7 12       		.uleb128 0x12
+ 1046 00f8 06       		.uleb128 0x6
+ 1047 00f9 40       		.uleb128 0x40
+ 1048 00fa 18       		.uleb128 0x18
+ 1049 00fb 9742     		.uleb128 0x2117
+ 1050 00fd 19       		.uleb128 0x19
+ 1051 00fe 01       		.uleb128 0x1
+ 1052 00ff 13       		.uleb128 0x13
+ 1053 0100 00       		.byte	0
+ 1054 0101 00       		.byte	0
+ 1055 0102 12       		.uleb128 0x12
+ 1056 0103 05       		.uleb128 0x5
+ 1057 0104 00       		.byte	0
+ 1058 0105 03       		.uleb128 0x3
+ 1059 0106 0E       		.uleb128 0xe
+ 1060 0107 3A       		.uleb128 0x3a
+ 1061 0108 0B       		.uleb128 0xb
+ 1062 0109 3B       		.uleb128 0x3b
+ 1063 010a 0B       		.uleb128 0xb
+ 1064 010b 49       		.uleb128 0x49
+ 1065 010c 13       		.uleb128 0x13
+ 1066 010d 02       		.uleb128 0x2
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 24
+
+
+ 1067 010e 18       		.uleb128 0x18
+ 1068 010f 00       		.byte	0
+ 1069 0110 00       		.byte	0
+ 1070 0111 13       		.uleb128 0x13
+ 1071 0112 2E       		.uleb128 0x2e
+ 1072 0113 00       		.byte	0
+ 1073 0114 3F       		.uleb128 0x3f
+ 1074 0115 19       		.uleb128 0x19
+ 1075 0116 03       		.uleb128 0x3
+ 1076 0117 0E       		.uleb128 0xe
+ 1077 0118 3A       		.uleb128 0x3a
+ 1078 0119 0B       		.uleb128 0xb
+ 1079 011a 3B       		.uleb128 0x3b
+ 1080 011b 0B       		.uleb128 0xb
+ 1081 011c 27       		.uleb128 0x27
+ 1082 011d 19       		.uleb128 0x19
+ 1083 011e 11       		.uleb128 0x11
+ 1084 011f 01       		.uleb128 0x1
+ 1085 0120 12       		.uleb128 0x12
+ 1086 0121 06       		.uleb128 0x6
+ 1087 0122 40       		.uleb128 0x40
+ 1088 0123 18       		.uleb128 0x18
+ 1089 0124 9642     		.uleb128 0x2116
+ 1090 0126 19       		.uleb128 0x19
+ 1091 0127 00       		.byte	0
+ 1092 0128 00       		.byte	0
+ 1093 0129 14       		.uleb128 0x14
+ 1094 012a 34       		.uleb128 0x34
+ 1095 012b 00       		.byte	0
+ 1096 012c 03       		.uleb128 0x3
+ 1097 012d 0E       		.uleb128 0xe
+ 1098 012e 3A       		.uleb128 0x3a
+ 1099 012f 0B       		.uleb128 0xb
+ 1100 0130 3B       		.uleb128 0x3b
+ 1101 0131 0B       		.uleb128 0xb
+ 1102 0132 49       		.uleb128 0x49
+ 1103 0133 13       		.uleb128 0x13
+ 1104 0134 3F       		.uleb128 0x3f
+ 1105 0135 19       		.uleb128 0x19
+ 1106 0136 3C       		.uleb128 0x3c
+ 1107 0137 19       		.uleb128 0x19
+ 1108 0138 00       		.byte	0
+ 1109 0139 00       		.byte	0
+ 1110 013a 15       		.uleb128 0x15
+ 1111 013b 35       		.uleb128 0x35
+ 1112 013c 00       		.byte	0
+ 1113 013d 49       		.uleb128 0x49
+ 1114 013e 13       		.uleb128 0x13
+ 1115 013f 00       		.byte	0
+ 1116 0140 00       		.byte	0
+ 1117 0141 16       		.uleb128 0x16
+ 1118 0142 34       		.uleb128 0x34
+ 1119 0143 00       		.byte	0
+ 1120 0144 03       		.uleb128 0x3
+ 1121 0145 0E       		.uleb128 0xe
+ 1122 0146 3A       		.uleb128 0x3a
+ 1123 0147 0B       		.uleb128 0xb
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 25
+
+
+ 1124 0148 3B       		.uleb128 0x3b
+ 1125 0149 0B       		.uleb128 0xb
+ 1126 014a 49       		.uleb128 0x49
+ 1127 014b 13       		.uleb128 0x13
+ 1128 014c 3F       		.uleb128 0x3f
+ 1129 014d 19       		.uleb128 0x19
+ 1130 014e 02       		.uleb128 0x2
+ 1131 014f 18       		.uleb128 0x18
+ 1132 0150 00       		.byte	0
+ 1133 0151 00       		.byte	0
+ 1134 0152 00       		.byte	0
+ 1135              		.section	.debug_aranges,"",%progbits
+ 1136 0000 34000000 		.4byte	0x34
+ 1137 0004 0200     		.2byte	0x2
+ 1138 0006 00000000 		.4byte	.Ldebug_info0
+ 1139 000a 04       		.byte	0x4
+ 1140 000b 00       		.byte	0
+ 1141 000c 0000     		.2byte	0
+ 1142 000e 0000     		.2byte	0
+ 1143 0010 00000000 		.4byte	.LFB37
+ 1144 0014 1C000000 		.4byte	.LFE37-.LFB37
+ 1145 0018 00000000 		.4byte	.LFB38
+ 1146 001c 9C000000 		.4byte	.LFE38-.LFB38
+ 1147 0020 00000000 		.4byte	.LFB39
+ 1148 0024 44000000 		.4byte	.LFE39-.LFB39
+ 1149 0028 00000000 		.4byte	.LFB40
+ 1150 002c 34000000 		.4byte	.LFE40-.LFB40
+ 1151 0030 00000000 		.4byte	0
+ 1152 0034 00000000 		.4byte	0
+ 1153              		.section	.debug_ranges,"",%progbits
+ 1154              	.Ldebug_ranges0:
+ 1155 0000 00000000 		.4byte	.LFB37
+ 1156 0004 1C000000 		.4byte	.LFE37
+ 1157 0008 00000000 		.4byte	.LFB38
+ 1158 000c 9C000000 		.4byte	.LFE38
+ 1159 0010 00000000 		.4byte	.LFB39
+ 1160 0014 44000000 		.4byte	.LFE39
+ 1161 0018 00000000 		.4byte	.LFB40
+ 1162 001c 34000000 		.4byte	.LFE40
+ 1163 0020 00000000 		.4byte	0
+ 1164 0024 00000000 		.4byte	0
+ 1165              		.section	.debug_line,"",%progbits
+ 1166              	.Ldebug_line0:
+ 1167 0000 C4000000 		.section	.debug_str,"MS",%progbits,1
+ 1167      02005A00 
+ 1167      00000201 
+ 1167      FB0E0D00 
+ 1167      01010101 
+ 1168              	.LASF101:
+ 1169 0000 2E5C5549 		.ascii	".\\UI.c\000"
+ 1169      2E6300
+ 1170              	.LASF19:
+ 1171 0007 4359424C 		.ascii	"CYBLE_EVT_HCI_STATUS\000"
+ 1171      455F4556 
+ 1171      545F4843 
+ 1171      495F5354 
+ 1171      41545553 
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 26
+
+
+ 1172              	.LASF55:
+ 1173 001c 4359424C 		.ascii	"CYBLE_EVT_GATTC_WRITE_RSP\000"
+ 1173      455F4556 
+ 1173      545F4741 
+ 1173      5454435F 
+ 1173      57524954 
+ 1174              	.LASF32:
+ 1175 0036 4359424C 		.ascii	"CYBLE_EVT_GAP_CONNECTION_UPDATE_COMPLETE\000"
+ 1175      455F4556 
+ 1175      545F4741 
+ 1175      505F434F 
+ 1175      4E4E4543 
+ 1176              	.LASF21:
+ 1177 005f 4359424C 		.ascii	"CYBLE_EVT_MEMORY_REQUEST\000"
+ 1177      455F4556 
+ 1177      545F4D45 
+ 1177      4D4F5259 
+ 1177      5F524551 
+ 1178              	.LASF42:
+ 1179 0078 4359424C 		.ascii	"CYBLE_EVT_GATTC_ERROR_RSP\000"
+ 1179      455F4556 
+ 1179      545F4741 
+ 1179      5454435F 
+ 1179      4552524F 
+ 1180              	.LASF30:
+ 1181 0092 4359424C 		.ascii	"CYBLE_EVT_GAP_DEVICE_DISCONNECTED\000"
+ 1181      455F4556 
+ 1181      545F4741 
+ 1181      505F4445 
+ 1181      56494345 
+ 1182              	.LASF99:
+ 1183 00b4 75694F75 		.ascii	"uiOutputMailbox\000"
+ 1183      74707574 
+ 1183      4D61696C 
+ 1183      626F7800 
+ 1184              	.LASF36:
+ 1185 00c4 4359424C 		.ascii	"CYBLE_EVT_GAP_KEYPRESS_NOTIFICATION\000"
+ 1185      455F4556 
+ 1185      545F4741 
+ 1185      505F4B45 
+ 1185      59505245 
+ 1186              	.LASF2:
+ 1187 00e8 73686F72 		.ascii	"short int\000"
+ 1187      7420696E 
+ 1187      7400
+ 1188              	.LASF27:
+ 1189 00f2 4359424C 		.ascii	"CYBLE_EVT_GAP_AUTH_FAILED\000"
+ 1189      455F4556 
+ 1189      545F4741 
+ 1189      505F4155 
+ 1189      54485F46 
+ 1190              	.LASF14:
+ 1191 010c 73697A65 		.ascii	"sizetype\000"
+ 1191      74797065 
+ 1191      00
+ 1192              	.LASF38:
+ 1193 0115 4359424C 		.ascii	"CYBLE_EVT_GAP_DATA_LENGTH_CHANGE\000"
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 27
+
+
+ 1193      455F4556 
+ 1193      545F4741 
+ 1193      505F4441 
+ 1193      54415F4C 
+ 1194              	.LASF91:
+ 1195 0136 5549496E 		.ascii	"UIInput_Run\000"
+ 1195      7075745F 
+ 1195      52756E00 
+ 1196              	.LASF6:
+ 1197 0142 6C6F6E67 		.ascii	"long long int\000"
+ 1197      206C6F6E 
+ 1197      6720696E 
+ 1197      7400
+ 1198              	.LASF103:
+ 1199 0150 55495F53 		.ascii	"UI_Start\000"
+ 1199      74617274 
+ 1199      00
+ 1200              	.LASF102:
+ 1201 0159 433A5C55 		.ascii	"C:\\Users\\Gaurav\\Documents\\PSoC Creator\\BLE MID"
+ 1201      73657273 
+ 1201      5C476175 
+ 1201      7261765C 
+ 1201      446F6375 
+ 1202 0187 495C424C 		.ascii	"I\\BLE_MIDI_iOS.cydsn\000"
+ 1202      455F4D49 
+ 1202      44495F69 
+ 1202      4F532E63 
+ 1202      7964736E 
+ 1203              	.LASF16:
+ 1204 019c 4359424C 		.ascii	"CYBLE_EVT_STACK_ON\000"
+ 1204      455F4556 
+ 1204      545F5354 
+ 1204      41434B5F 
+ 1204      4F4E00
+ 1205              	.LASF45:
+ 1206 01af 4359424C 		.ascii	"CYBLE_EVT_GATTS_XCNHG_MTU_REQ\000"
+ 1206      455F4556 
+ 1206      545F4741 
+ 1206      5454535F 
+ 1206      58434E48 
+ 1207              	.LASF10:
+ 1208 01cd 75696E74 		.ascii	"uint16\000"
+ 1208      313600
+ 1209              	.LASF98:
+ 1210 01d4 70726576 		.ascii	"previousSliderPosition\000"
+ 1210      696F7573 
+ 1210      536C6964 
+ 1210      6572506F 
+ 1210      73697469 
+ 1211              	.LASF34:
+ 1212 01eb 4359424C 		.ascii	"CYBLE_EVT_GAP_KEYINFO_EXCHNGE_CMPLT\000"
+ 1212      455F4556 
+ 1212      545F4741 
+ 1212      505F4B45 
+ 1212      59494E46 
+ 1213              	.LASF53:
+ 1214 020f 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_MULTI_RSP\000"
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 28
+
+
+ 1214      455F4556 
+ 1214      545F4741 
+ 1214      5454435F 
+ 1214      52454144 
+ 1215              	.LASF62:
+ 1216 022e 4359424C 		.ascii	"CYBLE_EVT_GATTS_HANDLE_VALUE_CNF\000"
+ 1216      455F4556 
+ 1216      545F4741 
+ 1216      5454535F 
+ 1216      48414E44 
+ 1217              	.LASF15:
+ 1218 024f 4359424C 		.ascii	"CYBLE_EVT_HOST_INVALID\000"
+ 1218      455F4556 
+ 1218      545F484F 
+ 1218      53545F49 
+ 1218      4E56414C 
+ 1219              	.LASF70:
+ 1220 0266 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_CONN_IND\000"
+ 1220      455F4556 
+ 1220      545F4C32 
+ 1220      4341505F 
+ 1220      43424643 
+ 1221              	.LASF73:
+ 1222 0284 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_DISCONN_CNF\000"
+ 1222      455F4556 
+ 1222      545F4C32 
+ 1222      4341505F 
+ 1222      43424643 
+ 1223              	.LASF82:
+ 1224 02a5 4C656444 		.ascii	"LedDriveLevel\000"
+ 1224      72697665 
+ 1224      4C657665 
+ 1224      6C00
+ 1225              	.LASF11:
+ 1226 02b3 666C6F61 		.ascii	"float\000"
+ 1226      7400
+ 1227              	.LASF51:
+ 1228 02b9 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_RSP\000"
+ 1228      455F4556 
+ 1228      545F4741 
+ 1228      5454435F 
+ 1228      52454144 
+ 1229              	.LASF92:
+ 1230 02d2 55494F75 		.ascii	"UIOutput_UpdateMailbox\000"
+ 1230      74707574 
+ 1230      5F557064 
+ 1230      6174654D 
+ 1230      61696C62 
+ 1231              	.LASF35:
+ 1232 02e9 4359424C 		.ascii	"CYBLE_EVT_GAP_NUMERIC_COMPARISON_REQUEST\000"
+ 1232      455F4556 
+ 1232      545F4741 
+ 1232      505F4E55 
+ 1232      4D455249 
+ 1233              	.LASF40:
+ 1234 0312 4359424C 		.ascii	"CYBLE_EVT_GAPC_DIRECT_ADV_REPORT\000"
+ 1234      455F4556 
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 29
+
+
+ 1234      545F4741 
+ 1234      50435F44 
+ 1234      49524543 
+ 1235              	.LASF7:
+ 1236 0333 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 1236      206C6F6E 
+ 1236      6720756E 
+ 1236      7369676E 
+ 1236      65642069 
+ 1237              	.LASF4:
+ 1238 034a 6C6F6E67 		.ascii	"long int\000"
+ 1238      20696E74 
+ 1238      00
+ 1239              	.LASF61:
+ 1240 0353 4359424C 		.ascii	"CYBLE_EVT_GATTC_HANDLE_VALUE_IND\000"
+ 1240      455F4556 
+ 1240      545F4741 
+ 1240      5454435F 
+ 1240      48414E44 
+ 1241              	.LASF107:
+ 1242 0374 55494F75 		.ascii	"UIOutput_Run\000"
+ 1242      74707574 
+ 1242      5F52756E 
+ 1242      00
+ 1243              	.LASF29:
+ 1244 0381 4359424C 		.ascii	"CYBLE_EVT_GAP_DEVICE_CONNECTED\000"
+ 1244      455F4556 
+ 1244      545F4741 
+ 1244      505F4445 
+ 1244      56494345 
+ 1245              	.LASF90:
+ 1246 03a0 55495F53 		.ascii	"UI_STATE\000"
+ 1246      54415445 
+ 1246      00
+ 1247              	.LASF28:
+ 1248 03a9 4359424C 		.ascii	"CYBLE_EVT_GAPP_ADVERTISEMENT_START_STOP\000"
+ 1248      455F4556 
+ 1248      545F4741 
+ 1248      50505F41 
+ 1248      44564552 
+ 1249              	.LASF60:
+ 1250 03d1 4359424C 		.ascii	"CYBLE_EVT_GATTC_HANDLE_VALUE_NTF\000"
+ 1250      455F4556 
+ 1250      545F4741 
+ 1250      5454435F 
+ 1250      48414E44 
+ 1251              	.LASF20:
+ 1252 03f2 4359424C 		.ascii	"CYBLE_EVT_STACK_BUSY_STATUS\000"
+ 1252      455F4556 
+ 1252      545F5354 
+ 1252      41434B5F 
+ 1252      42555359 
+ 1253              	.LASF84:
+ 1254 040e 6F757470 		.ascii	"outputMailIndex\000"
+ 1254      75744D61 
+ 1254      696C496E 
+ 1254      64657800 
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 30
+
+
+ 1255              	.LASF25:
+ 1256 041e 4359424C 		.ascii	"CYBLE_EVT_GAP_PASSKEY_DISPLAY_REQUEST\000"
+ 1256      455F4556 
+ 1256      545F4741 
+ 1256      505F5041 
+ 1256      53534B45 
+ 1257              	.LASF81:
+ 1258 0444 76616C69 		.ascii	"validStatus\000"
+ 1258      64537461 
+ 1258      74757300 
+ 1259              	.LASF71:
+ 1260 0450 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_CONN_CNF\000"
+ 1260      455F4556 
+ 1260      545F4C32 
+ 1260      4341505F 
+ 1260      43424643 
+ 1261              	.LASF39:
+ 1262 046e 4359424C 		.ascii	"CYBLE_EVT_GAP_ENHANCE_CONN_COMPLETE\000"
+ 1262      455F4556 
+ 1262      545F4741 
+ 1262      505F454E 
+ 1262      48414E43 
+ 1263              	.LASF9:
+ 1264 0492 75696E74 		.ascii	"uint8\000"
+ 1264      3800
+ 1265              	.LASF67:
+ 1266 0498 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CONN_PARAM_UPDATE_REQ\000"
+ 1266      455F4556 
+ 1266      545F4C32 
+ 1266      4341505F 
+ 1266      434F4E4E 
+ 1267              	.LASF1:
+ 1268 04be 756E7369 		.ascii	"unsigned char\000"
+ 1268      676E6564 
+ 1268      20636861 
+ 1268      7200
+ 1269              	.LASF57:
+ 1270 04cc 4359424C 		.ascii	"CYBLE_EVT_GATTS_PREP_WRITE_REQ\000"
+ 1270      455F4556 
+ 1270      545F4741 
+ 1270      5454535F 
+ 1270      50524550 
+ 1271              	.LASF79:
+ 1272 04eb 4359424C 		.ascii	"CYBLE_EVT_LE_PING_AUTH_TIMEOUT\000"
+ 1272      455F4556 
+ 1272      545F4C45 
+ 1272      5F50494E 
+ 1272      475F4155 
+ 1273              	.LASF54:
+ 1274 050a 4359424C 		.ascii	"CYBLE_EVT_GATTS_WRITE_REQ\000"
+ 1274      455F4556 
+ 1274      545F4741 
+ 1274      5454535F 
+ 1274      57524954 
+ 1275              	.LASF49:
+ 1276 0524 4359424C 		.ascii	"CYBLE_EVT_GATTC_FIND_INFO_RSP\000"
+ 1276      455F4556 
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 31
+
+
+ 1276      545F4741 
+ 1276      5454435F 
+ 1276      46494E44 
+ 1277              	.LASF0:
+ 1278 0542 7369676E 		.ascii	"signed char\000"
+ 1278      65642063 
+ 1278      68617200 
+ 1279              	.LASF96:
+ 1280 054e 63757272 		.ascii	"currentButtonPosition\000"
+ 1280      656E7442 
+ 1280      7574746F 
+ 1280      6E506F73 
+ 1280      6974696F 
+ 1281              	.LASF50:
+ 1282 0564 4359424C 		.ascii	"CYBLE_EVT_GATTC_FIND_BY_TYPE_VALUE_RSP\000"
+ 1282      455F4556 
+ 1282      545F4741 
+ 1282      5454435F 
+ 1282      46494E44 
+ 1283              	.LASF26:
+ 1284 058b 4359424C 		.ascii	"CYBLE_EVT_GAP_AUTH_COMPLETE\000"
+ 1284      455F4556 
+ 1284      545F4741 
+ 1284      505F4155 
+ 1284      54485F43 
+ 1285              	.LASF8:
+ 1286 05a7 756E7369 		.ascii	"unsigned int\000"
+ 1286      676E6564 
+ 1286      20696E74 
+ 1286      00
+ 1287              	.LASF93:
+ 1288 05b4 636F6C6F 		.ascii	"color\000"
+ 1288      7200
+ 1289              	.LASF43:
+ 1290 05ba 4359424C 		.ascii	"CYBLE_EVT_GATT_CONNECT_IND\000"
+ 1290      455F4556 
+ 1290      545F4741 
+ 1290      54545F43 
+ 1290      4F4E4E45 
+ 1291              	.LASF5:
+ 1292 05d5 6C6F6E67 		.ascii	"long unsigned int\000"
+ 1292      20756E73 
+ 1292      69676E65 
+ 1292      6420696E 
+ 1292      7400
+ 1293              	.LASF23:
+ 1294 05e7 4359424C 		.ascii	"CYBLE_EVT_GAP_AUTH_REQ\000"
+ 1294      455F4556 
+ 1294      545F4741 
+ 1294      505F4155 
+ 1294      54485F52 
+ 1295              	.LASF72:
+ 1296 05fe 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_DISCONN_IND\000"
+ 1296      455F4556 
+ 1296      545F4C32 
+ 1296      4341505F 
+ 1296      43424643 
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 32
+
+
+ 1297              	.LASF31:
+ 1298 061f 4359424C 		.ascii	"CYBLE_EVT_GAP_ENCRYPT_CHANGE\000"
+ 1298      455F4556 
+ 1298      545F4741 
+ 1298      505F454E 
+ 1298      43525950 
+ 1299              	.LASF83:
+ 1300 063c 55495F4F 		.ascii	"UI_OUTPUT_MAIL_T\000"
+ 1300      55545055 
+ 1300      545F4D41 
+ 1300      494C5F54 
+ 1300      00
+ 1301              	.LASF66:
+ 1302 064d 4359424C 		.ascii	"CYBLE_EVT_GATTC_LONG_PROCEDURE_END\000"
+ 1302      455F4556 
+ 1302      545F4741 
+ 1302      5454435F 
+ 1302      4C4F4E47 
+ 1303              	.LASF3:
+ 1304 0670 73686F72 		.ascii	"short unsigned int\000"
+ 1304      7420756E 
+ 1304      7369676E 
+ 1304      65642069 
+ 1304      6E7400
+ 1305              	.LASF94:
+ 1306 0683 75695374 		.ascii	"uiState\000"
+ 1306      61746500 
+ 1307              	.LASF41:
+ 1308 068b 4359424C 		.ascii	"CYBLE_EVT_GAP_SMP_NEGOTIATED_AUTH_INFO\000"
+ 1308      455F4556 
+ 1308      545F4741 
+ 1308      505F534D 
+ 1308      505F4E45 
+ 1309              	.LASF13:
+ 1310 06b2 63686172 		.ascii	"char\000"
+ 1310      00
+ 1311              	.LASF100:
+ 1312 06b7 474E5520 		.ascii	"GNU C 4.9.3 20150303 (release) [ARM/embedded-4_9-br"
+ 1312      4320342E 
+ 1312      392E3320 
+ 1312      32303135 
+ 1312      30333033 
+ 1313 06ea 616E6368 		.ascii	"anch revision 221220] -mcpu=cortex-m0 -mthumb -g -O"
+ 1313      20726576 
+ 1313      6973696F 
+ 1313      6E203232 
+ 1313      31323230 
+ 1314 071d 30202D66 		.ascii	"0 -ffunction-sections -ffat-lto-objects\000"
+ 1314      66756E63 
+ 1314      74696F6E 
+ 1314      2D736563 
+ 1314      74696F6E 
+ 1315              	.LASF69:
+ 1316 0745 4359424C 		.ascii	"CYBLE_EVT_L2CAP_COMMAND_REJ\000"
+ 1316      455F4556 
+ 1316      545F4C32 
+ 1316      4341505F 
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 33
+
+
+ 1316      434F4D4D 
+ 1317              	.LASF97:
+ 1318 0761 70726576 		.ascii	"previousButtonPosition\000"
+ 1318      696F7573 
+ 1318      42757474 
+ 1318      6F6E506F 
+ 1318      73697469 
+ 1319              	.LASF22:
+ 1320 0778 4359424C 		.ascii	"CYBLE_EVT_GAPC_SCAN_PROGRESS_RESULT\000"
+ 1320      455F4556 
+ 1320      545F4741 
+ 1320      50435F53 
+ 1320      43414E5F 
+ 1321              	.LASF85:
+ 1322 079c 6F757470 		.ascii	"outputMail\000"
+ 1322      75744D61 
+ 1322      696C00
+ 1323              	.LASF52:
+ 1324 07a7 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_BLOB_RSP\000"
+ 1324      455F4556 
+ 1324      545F4741 
+ 1324      5454435F 
+ 1324      52454144 
+ 1325              	.LASF59:
+ 1326 07c5 4359424C 		.ascii	"CYBLE_EVT_GATTC_EXEC_WRITE_RSP\000"
+ 1326      455F4556 
+ 1326      545F4741 
+ 1326      5454435F 
+ 1326      45584543 
+ 1327              	.LASF33:
+ 1328 07e4 4359424C 		.ascii	"CYBLE_EVT_GAPC_SCAN_START_STOP\000"
+ 1328      455F4556 
+ 1328      545F4741 
+ 1328      50435F53 
+ 1328      43414E5F 
+ 1329              	.LASF78:
+ 1330 0803 4359424C 		.ascii	"CYBLE_EVT_PENDING_FLASH_WRITE\000"
+ 1330      455F4556 
+ 1330      545F5045 
+ 1330      4E44494E 
+ 1330      475F464C 
+ 1331              	.LASF75:
+ 1332 0821 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_RX_CREDIT_IND\000"
+ 1332      455F4556 
+ 1332      545F4C32 
+ 1332      4341505F 
+ 1332      43424643 
+ 1333              	.LASF12:
+ 1334 0844 646F7562 		.ascii	"double\000"
+ 1334      6C6500
+ 1335              	.LASF76:
+ 1336 084b 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_TX_CREDIT_IND\000"
+ 1336      455F4556 
+ 1336      545F4C32 
+ 1336      4341505F 
+ 1336      43424643 
+ 1337              	.LASF89:
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 34
+
+
+ 1338 086e 55495F52 		.ascii	"UI_RESULT_STATE\000"
+ 1338      4553554C 
+ 1338      545F5354 
+ 1338      41544500 
+ 1339              	.LASF24:
+ 1340 087e 4359424C 		.ascii	"CYBLE_EVT_GAP_PASSKEY_ENTRY_REQUEST\000"
+ 1340      455F4556 
+ 1340      545F4741 
+ 1340      505F5041 
+ 1340      53534B45 
+ 1341              	.LASF18:
+ 1342 08a2 4359424C 		.ascii	"CYBLE_EVT_HARDWARE_ERROR\000"
+ 1342      455F4556 
+ 1342      545F4841 
+ 1342      52445741 
+ 1342      52455F45 
+ 1343              	.LASF74:
+ 1344 08bb 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_DATA_READ\000"
+ 1344      455F4556 
+ 1344      545F4C32 
+ 1344      4341505F 
+ 1344      43424643 
+ 1345              	.LASF68:
+ 1346 08da 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CONN_PARAM_UPDATE_RSP\000"
+ 1346      455F4556 
+ 1346      545F4C32 
+ 1346      4341505F 
+ 1346      434F4E4E 
+ 1347              	.LASF86:
+ 1348 0900 55495F4F 		.ascii	"UI_OUTPUT_MAILBOX_T\000"
+ 1348      55545055 
+ 1348      545F4D41 
+ 1348      494C424F 
+ 1348      585F5400 
+ 1349              	.LASF88:
+ 1350 0914 55495F53 		.ascii	"UI_SCANNING_STATE\000"
+ 1350      43414E4E 
+ 1350      494E475F 
+ 1350      53544154 
+ 1350      4500
+ 1351              	.LASF47:
+ 1352 0926 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_BY_GROUP_TYPE_RSP\000"
+ 1352      455F4556 
+ 1352      545F4741 
+ 1352      5454435F 
+ 1352      52454144 
+ 1353              	.LASF56:
+ 1354 094d 4359424C 		.ascii	"CYBLE_EVT_GATTS_WRITE_CMD_REQ\000"
+ 1354      455F4556 
+ 1354      545F4741 
+ 1354      5454535F 
+ 1354      57524954 
+ 1355              	.LASF48:
+ 1356 096b 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_BY_TYPE_RSP\000"
+ 1356      455F4556 
+ 1356      545F4741 
+ 1356      5454435F 
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 35
+
+
+ 1356      52454144 
+ 1357              	.LASF46:
+ 1358 098c 4359424C 		.ascii	"CYBLE_EVT_GATTC_XCHNG_MTU_RSP\000"
+ 1358      455F4556 
+ 1358      545F4741 
+ 1358      5454435F 
+ 1358      5843484E 
+ 1359              	.LASF87:
+ 1360 09aa 55495F49 		.ascii	"UI_IDLE_STATE\000"
+ 1360      444C455F 
+ 1360      53544154 
+ 1360      4500
+ 1361              	.LASF77:
+ 1362 09b8 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_DATA_WRITE_IND\000"
+ 1362      455F4556 
+ 1362      545F4C32 
+ 1362      4341505F 
+ 1362      43424643 
+ 1363              	.LASF17:
+ 1364 09dc 4359424C 		.ascii	"CYBLE_EVT_TIMEOUT\000"
+ 1364      455F4556 
+ 1364      545F5449 
+ 1364      4D454F55 
+ 1364      5400
+ 1365              	.LASF80:
+ 1366 09ee 4359424C 		.ascii	"CYBLE_EVT_MAX\000"
+ 1366      455F4556 
+ 1366      545F4D41 
+ 1366      5800
+ 1367              	.LASF65:
+ 1368 09fc 4359424C 		.ascii	"CYBLE_EVT_GATTS_READ_CHAR_VAL_ACCESS_REQ\000"
+ 1368      455F4556 
+ 1368      545F4741 
+ 1368      5454535F 
+ 1368      52454144 
+ 1369              	.LASF104:
+ 1370 0a25 6C6F6F70 		.ascii	"loopIndex\000"
+ 1370      496E6465 
+ 1370      7800
+ 1371              	.LASF64:
+ 1372 0a2f 4359424C 		.ascii	"CYBLE_EVT_GATTC_STOP_CMD_COMPLETE\000"
+ 1372      455F4556 
+ 1372      545F4741 
+ 1372      5454435F 
+ 1372      53544F50 
+ 1373              	.LASF58:
+ 1374 0a51 4359424C 		.ascii	"CYBLE_EVT_GATTS_EXEC_WRITE_REQ\000"
+ 1374      455F4556 
+ 1374      545F4741 
+ 1374      5454535F 
+ 1374      45584543 
+ 1375              	.LASF105:
+ 1376 0a70 75694368 		.ascii	"uiChangeStatus\000"
+ 1376      616E6765 
+ 1376      53746174 
+ 1376      757300
+ 1377              	.LASF95:
+ARM GAS  C:\Users\Gaurav\AppData\Local\Temp\ccancYRv.s 			page 36
+
+
+ 1378 0a7f 63757272 		.ascii	"currentSliderPosition\000"
+ 1378      656E7453 
+ 1378      6C696465 
+ 1378      72506F73 
+ 1378      6974696F 
+ 1379              	.LASF106:
+ 1380 0a95 64726976 		.ascii	"driveLevel\000"
+ 1380      654C6576 
+ 1380      656C00
+ 1381              	.LASF63:
+ 1382 0aa0 4359424C 		.ascii	"CYBLE_EVT_GATTS_DATA_SIGNED_CMD_REQ\000"
+ 1382      455F4556 
+ 1382      545F4741 
+ 1382      5454535F 
+ 1382      44415441 
+ 1383              	.LASF44:
+ 1384 0ac4 4359424C 		.ascii	"CYBLE_EVT_GATT_DISCONNECT_IND\000"
+ 1384      455F4556 
+ 1384      545F4741 
+ 1384      54545F44 
+ 1384      4953434F 
+ 1385              	.LASF37:
+ 1386 0ae2 4359424C 		.ascii	"CYBLE_EVT_GAP_OOB_GENERATED_NOTIFICATION\000"
+ 1386      455F4556 
+ 1386      545F4741 
+ 1386      505F4F4F 
+ 1386      425F4745 
+ 1387              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 4.9.3 20150303 (release) [ARM/embedded-4_9-br
